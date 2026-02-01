@@ -1,0 +1,6 @@
+*.d.ts
+node_modules/.tmp
+node_modules/
+dist/
+.env"node_modules/" 
+"dist/" 
