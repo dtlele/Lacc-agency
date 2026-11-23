@@ -26,3 +26,23 @@ Ondata 1: P1 + P2 (le due novità visibili). Ondata 2: P3 + P4 + P5.
 - Agenti a ondate di 2-3; Haiku per il meccanico, Sonnet per ciò che tocca sicurezza o logica.
 - Controllo RAM/CPU prima e dopo ogni ondata; stop se RAM libera < 1,5 GB.
 - Temperatura: il sensore ACPI non è leggibile su questo PC; si usa il carico CPU come indicatore.
+
+## Verifiche di accettazione (23/11/2026, produzione https://filo-fantasia.vercel.app)
+
+| Funzione | Esito | Come |
+|----------|-------|------|
+| Accesso, area /app protetta, isolamento tra utenti | OK | prova locale con due utenti: 404 su lettura/modifica/eliminazione di progetti altrui; CSRF 403 |
+| Foto -> schema + passi AI + salvataggio | OK dal vivo | foto di prova -> "Cuore all'uncinetto", 6 passi, progetto salvato |
+| Animazione schema + video WebM | OK dal vivo | file `Cuore-all-uncinetto.webm` scaricato |
+| Amigurumi a giri + anteprima 3D + salvataggio | OK dal vivo | sfera 10 cm salvata come progetto |
+| Ricerca YouTube + player | OK dal vivo | 8 tutorial per "amigurumi" e "granny square" |
+| Chat AI | OK dal vivo | risposta in italiano |
+| Libreria con filtri | OK in locale e dal vivo (schede) | filtro Accessori 2 -> 1 |
+| Account e pannello admin | OK dal vivo (pagine) | codice rivisto a mano: password richiesta, ultimo admin protetto |
+| Test automatici | 40/40 | vitest, eseguiti anche nella build Vercel |
+
+## Aperti, dipendono da Mauro
+- Privacy e termini: bozze, da completare con i dati del titolare.
+- `NEXT_PUBLIC_AMAZON_TAG`: serve il codice affiliato.
+- `YOUTUBE_API_KEY`: per la verifica "creatrice umana" sui canali.
+- Avviso React #418 visto una volta, non riprodotto.
