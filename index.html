@@ -1,13 +1,131 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vueffe Consulting - Al Servizio Delle Imprese</title>
-    <script type="module" crossorigin src="./assets/index-BmHXuUGQ.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BwrvSMEP.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filo &amp; Fantasia</title>
+<meta name="description" content="Video di creatrici vere, idee da sfogliare, schemi passo passo e tutto il filo che ti serve per l'uncinetto.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#in-cima">Filo &amp; Fantasia</a>
+    <nav aria-label="Sezioni">
+      <a href="#video">Video</a><a href="#foto">Foto</a><a href="#chat">Chat AI</a><a href="#schema">Schema</a><a href="#amazon">Materiali</a>
+    </nav>
+  </div>
+</header>
+
+<main id="in-cima">
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <span class="sopra">Tutto all'uncinetto</span>
+      <h1>Crea qualcosa di bellissimo!</h1>
+      <p class="sub">Video di creatrici vere, idee da sfogliare, schemi passo passo e tutto il filo che ti serve.</p>
+      <a class="cta" href="#schema">Inizia un progetto</a>
+    </div>
+    <div class="volantino" aria-hidden="true">
+      <div class="gomitolo"></div>
+      <div class="stella"><span>100% mani vere</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- RICERCA VIDEO -->
+<section class="fascia f-menta" id="video">
+  <div class="wrap">
+    <div class="testata"><h2>Cerca un video</h2><span class="nastro">solo creatrici umane</span></div>
+    <p class="lead">Cerchiamo su YouTube e altri siti, e mostriamo solo tutorial fatti da persone vere, mai contenuti generati con l'AI.</p>
+    <form class="ritaglio" id="formVideo">
+      <div class="campo">
+        <input type="search" id="qVideo" placeholder="Es. amigurumi, punto ventaglio, borsa" aria-label="Cerca un video">
+        <select id="fonteVideo" aria-label="Fonte"><option value="">Tutte le fonti</option><option>YouTube</option><option>Blog</option><option>Instagram</option></select>
+        <button class="bottone" type="submit">Cerca</button>
+      </div>
+      <div class="chips" id="chipLivello" role="group" aria-label="Livello"></div>
+    </form>
+    <div class="griglia" id="listaVideo" aria-live="polite"></div>
+    <p class="avviso" style="margin-top:14px">Esempi di prova. Nella versione finale i risultati arrivano da YouTube e dagli altri siti, con controllo "creatrice umana".</p>
+  </div>
+</section>
+
+<!-- LIBRERIA FOTO -->
+<section class="fascia f-pesca" id="foto">
+  <div class="wrap">
+    <div class="testata"><h2>La tua libreria foto</h2><span class="nastro">categorie e filtri</span></div>
+    <div class="ritaglio">
+      <div class="chips" id="chipCat" role="group" aria-label="Categorie"></div>
+      <div class="filtri">
+        <label>Difficoltà<select id="fDiff"><option value="">Tutte</option><option>Facile</option><option>Media</option><option>Esperta</option></select></label>
+        <label>Colore<select id="fCol"><option value="">Tutti</option><option>Rosa</option><option>Lilla</option><option>Menta</option><option>Giallo</option></select></label>
+        <label>Aggiungi una tua foto<input type="file" id="fileFoto" accept="image/*"></label>
+      </div>
+    </div>
+    <div class="foto-griglia" id="listaFoto" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- CHAT AI -->
+<section class="fascia f-lilla" id="chat">
+  <div class="wrap">
+    <div class="testata"><h2>Chiedi alla chat</h2><span class="nastro">assistente AI</span></div>
+    <div class="ritaglio chat">
+      <div class="msgs" id="msgs" aria-live="polite">
+        <div class="bolla lei">Ciao! Dimmi cosa vuoi creare e ti aiuto con punti, filato e misure.</div>
+      </div>
+      <form class="campo" id="formChat">
+        <input type="text" id="qChat" placeholder="Scrivi qui la tua domanda" aria-label="Messaggio">
+        <button class="bottone" type="submit">Invia</button>
+      </form>
+      <p class="avviso">Prototipo: le risposte sono d'esempio, la chat vera si collega in fase di sviluppo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SCHEMA PUNTI -->
+<section class="fascia f-rosa" id="schema">
+  <div class="wrap">
+    <div class="testata"><h2>Schema dei punti</h2><span class="nastro">guida passo passo</span></div>
+    <p class="lead">Scegli il progetto, segui i passi e spunta quelli finiti. Lo schema evidenzia le righe da lavorare.</p>
+    <div class="progetti" id="progetti" role="group" aria-label="Progetto"></div>
+    <div class="schema">
+      <div class="ritaglio">
+        <h3 id="titProg" style="font-size:26px"></h3>
+        <div class="barra" aria-hidden="true"><i id="barra"></i></div>
+        <p class="meta" id="contatore" style="margin-bottom:10px"></p>
+        <ol class="passi" id="passi"></ol>
+      </div>
+      <div class="ritaglio">
+        <h3 style="font-size:22px;margin-bottom:8px">Schema (si legge dal basso verso l'alto)</h3>
+        <div class="tela"><div class="grafico" id="grafico" role="img" aria-label="Schema a quadretti del progetto"></div></div>
+        <div class="legenda"><span class="p">Maglia alta</span><span>Catenella e salto</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MATERIALI -->
+<section class="fascia f-menta" id="amazon">
+  <div class="wrap">
+    <div class="testata"><h2>Tutto il materiale</h2><span class="nastro">cerca su Amazon</span></div>
+    <p class="lead">Ogni progetto ha la sua lista. Un tocco e vedi uncinetti e filati su Amazon.</p>
+    <div class="mat" id="mat"></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">Filo &amp; Fantasia, fatto con tanto filo e tanta passione
+  <small>Bozza di lavoro. Il nome è provvisorio.</small></div>
+</footer>
+
+<script src="app.js"></script>
+</body>
 </html>
+
