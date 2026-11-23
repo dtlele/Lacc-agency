@@ -5,6 +5,7 @@ import type { Step } from "@/lib/pattern";
 const BG = "#fff7ee", FILL = "#ff4f8b", INK = "#3d1747", HI = "#ffe066";
 const MAX_W = 480, PAD = 14, STRIP = 44, MAX_CELL = 30;
 const REC_SECONDS = 9, HOLD_SECONDS = 1.5;
+const VOICE_MAX = 240;
 
 function pickMime(): string | undefined {
   if (typeof MediaRecorder === "undefined") return undefined;
@@ -17,7 +18,18 @@ export default function PatternPlayer({ rows, steps, name }: { rows: string[]; s
   const nCols = rows[0]?.length ?? 0;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const progRef = useRef(0); // 0..nRows (righe riempite, con frazione)
-  const recRef = useRef<{ rec: MediaRecorder; holdUntil: number | null } | null>(null);
+  const recRef = useRef<{ rec: MediaRecorder; holdUntil: number | null; voice: boolean } | null>(null);
+  // voce narrante
+  const voiceOnRef = useRef(false);
+  const hqRef = useRef(false); // voce di qualità (ElevenLabs) disponibile
+  const busyRef = useRef(false); // true finche' la frase corrente sta parlando: l'animazione aspetta
+  const spokenRef = useRef(-1); // indice dell'ultimo passo letto
+  const tokRef = useRef(0);
+  const ctxRef = useRef<AudioContext | null>(null);
+  const destRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const srcRef = useRef<AudioBufferSourceNode | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bufRef = useRef<Map<string, AudioBuffer>>(new Map());
   const [prog, setProg] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -25,6 +37,10 @@ export default function PatternPlayer({ rows, steps, name }: { rows: string[]; s
   const [canRecord, setCanRecord] = useState(true);
   const [recording, setRecording] = useState(false);
   const [msg, setMsg] = useState("");
+  const [voiceOk, setVoiceOk] = useState(false); // il browser sa leggere ad alta voce
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [voiceHq, setVoiceHq] = useState(false);
+  const [voiceNote, setVoiceNote] = useState("");
 
   const geo = useMemo(() => {
     const cell = Math.max(6, Math.min(MAX_CELL, Math.floor((MAX_W - PAD * 2) / Math.max(1, nCols))));
@@ -34,6 +50,68 @@ export default function PatternPlayer({ rows, steps, name }: { rows: string[]; s
   }, [nCols, nRows]);
 
   const stepOfRow = useCallback((y: number) => steps.find((s) => s.r.includes(y)), [steps]);
+
+  const stepText = useCallback((i: number) => `${steps[i].t}. ${steps[i].s}`.replace(/\s+/g, " ").trim().slice(0, VOICE_MAX), [steps]);
+  const stepIndexAt = useCallback((p: number) => {
+    const row = nRows - 1 - Math.min(nRows - 1, Math.max(0, Math.ceil(p) - 1));
+    return steps.findIndex((s) => s.r.includes(row));
+  }, [steps, nRows]);
+
+  const stopVoice = useCallback(() => {
+    tokRef.current++;
+    busyRef.current = false;
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    try { srcRef.current?.stop(); } catch { /* gia' fermo */ }
+    srcRef.current = null;
+    if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
+  }, []);
+
+  const loadBuf = useCallback(async (text: string): Promise<AudioBuffer> => {
+    const hit = bufRef.current.get(text);
+    if (hit) return hit;
+    const ctx = ctxRef.current;
+    if (!ctx) throw new Error("no audio");
+    const r = await fetch("/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+    if (!r.ok) throw new Error(String(r.status));
+    const b = await ctx.decodeAudioData(await r.arrayBuffer());
+    bufRef.current.set(text, b);
+    return b;
+  }, []);
+
+  const speak = useCallback((i: number) => {
+    stopVoice();
+    const tok = tokRef.current;
+    const text = stepText(i);
+    busyRef.current = true;
+    const done = () => { if (tok === tokRef.current) { busyRef.current = false; if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; } } };
+    const browser = () => {
+      if (typeof speechSynthesis === "undefined") { done(); return; }
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "it-IT";
+      const v = speechSynthesis.getVoices().find((x) => x.lang.toLowerCase().startsWith("it"));
+      if (v) u.voice = v;
+      u.onend = done; u.onerror = done;
+      timerRef.current = setTimeout(done, text.length * 120 + 3000); // rete di sicurezza se il browser non avvisa
+      speechSynthesis.speak(u);
+    };
+    if (!hqRef.current || !ctxRef.current) { browser(); return; }
+    loadBuf(text).then((buf) => {
+      if (tok !== tokRef.current) return;
+      const ctx = ctxRef.current!;
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      if (destRef.current) src.connect(destRef.current);
+      src.onended = done;
+      srcRef.current = src;
+      src.start();
+    }).catch(() => {
+      if (tok !== tokRef.current) return;
+      hqRef.current = false; setVoiceHq(false);
+      setVoiceNote("La voce di qualità non risponde: uso la voce del browser.");
+      browser();
+    });
+  }, [stopVoice, stepText, loadBuf]);
 
   const draw = useCallback((p: number) => {
     const cv = canvasRef.current;
@@ -85,7 +163,9 @@ export default function PatternPlayer({ rows, steps, name }: { rows: string[]; s
     setReduced(mq.matches);
     setCanRecord(typeof MediaRecorder !== "undefined" && typeof HTMLCanvasElement.prototype.captureStream === "function");
     if (!mq.matches) setPlaying(true);
-  }, []);
+    setVoiceOk(typeof speechSynthesis !== "undefined" && typeof SpeechSynthesisUtterance !== "undefined");
+    return () => { stopVoice(); ctxRef.current?.close().catch(() => undefined); ctxRef.current = null; };
+  }, [stopVoice]);
 
   // ciclo di animazione
   useEffect(() => {
@@ -96,7 +176,13 @@ export default function PatternPlayer({ rows, steps, name }: { rows: string[]; s
       last = now;
       const r = recRef.current;
       const rate = r ? nRows / REC_SECONDS : Math.max(1.5, nRows / 10) * speed;
-      if (progRef.current < nRows) progRef.current = Math.min(nRows, progRef.current + rate * dt);
+      const vActive = voiceOnRef.current && (!r || r.voice);
+      if (vActive && progRef.current < nRows) {
+        const idx = stepIndexAt(progRef.current);
+        if (idx >= 0 && idx !== spokenRef.current) { spokenRef.current = idx; speak(idx); }
+      }
+      const waiting = vActive && busyRef.current; // la voce sta parlando: l'animazione aspetta
+      if (!waiting && progRef.current < nRows) progRef.current = Math.min(nRows, progRef.current + rate * dt);
       draw(progRef.current);
       setProg(progRef.current);
       if (progRef.current >= nRows) {
@@ -109,20 +195,59 @@ export default function PatternPlayer({ rows, steps, name }: { rows: string[]; s
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [playing, speed, nRows, draw]);
+  }, [playing, speed, nRows, draw, speak, stepIndexAt]);
 
   function setP(p: number) { progRef.current = p; setProg(p); draw(p); }
+  function resetVoice() { stopVoice(); spokenRef.current = -1; }
   function togglePlay() {
+    if (playing) resetVoice();
     if (!playing && progRef.current >= nRows) setP(0);
     setPlaying((v) => !v);
   }
-  function restart() { setP(0); setPlaying(!reduced); }
-  function nextRow() { setPlaying(false); setP(Math.min(nRows, Math.floor(progRef.current) + 1)); }
+  function restart() { resetVoice(); setP(0); setPlaying(!reduced); }
+  function nextRow() { resetVoice(); setPlaying(false); setP(Math.min(nRows, Math.floor(progRef.current) + 1)); }
 
-  function download() {
+  async function toggleVoice() {
+    if (voiceOn) {
+      voiceOnRef.current = false; setVoiceOn(false); resetVoice(); setVoiceNote("");
+      return;
+    }
+    setVoiceNote("Controllo la voce...");
+    let hq = false;
+    try {
+      const r = await fetch("/api/voice");
+      hq = r.ok && !!(await r.json()).enabled && typeof AudioContext !== "undefined";
+    } catch { hq = false; }
+    if (hq) {
+      if (!ctxRef.current) ctxRef.current = new AudioContext();
+      await ctxRef.current.resume().catch(() => undefined);
+    }
+    hqRef.current = hq; setVoiceHq(hq);
+    resetVoice();
+    voiceOnRef.current = true; setVoiceOn(true);
+    setVoiceNote(hq ? "Voce di qualità attiva." : "Voce del browser attiva.");
+  }
+
+  async function download() {
     const cv = canvasRef.current;
     if (!cv || recRef.current) return;
     setMsg("");
+    resetVoice();
+    // voce di qualita': prepara tutte le frasi prima di registrare, cosi' l'audio finisce nel video
+    let withVoice = false;
+    if (voiceOnRef.current && hqRef.current && ctxRef.current) {
+      setRecording(true);
+      setMsg("Preparo la voce...");
+      try {
+        for (let i = 0; i < steps.length; i++) await loadBuf(stepText(i));
+        destRef.current = ctxRef.current.createMediaStreamDestination();
+        withVoice = true;
+        setMsg("");
+      } catch {
+        setMsg("Non sono riuscita a preparare la voce: il video sarà senza voce.");
+      }
+    }
+    spokenRef.current = -1;
     try {
       setPlaying(false);
       setRecording(true);
@@ -130,7 +255,10 @@ export default function PatternPlayer({ rows, steps, name }: { rows: string[]; s
       requestAnimationFrame(() => requestAnimationFrame(() => {
         const c = canvasRef.current!;
         try {
-          const stream = c.captureStream(30);
+          const canvasStream = c.captureStream(30);
+          const stream = withVoice && destRef.current
+            ? new MediaStream([...canvasStream.getVideoTracks(), ...destRef.current.stream.getAudioTracks()])
+            : canvasStream;
           const mime = pickMime();
           const rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 2_500_000 } : undefined);
           const chunks: Blob[] = [];
@@ -138,6 +266,8 @@ export default function PatternPlayer({ rows, steps, name }: { rows: string[]; s
           rec.onerror = () => fail();
           rec.onstop = () => {
             stream.getTracks().forEach((t) => t.stop());
+            canvasStream.getTracks().forEach((t) => t.stop());
+            stopVoice(); destRef.current = null; spokenRef.current = -1;
             recRef.current = null;
             setPlaying(false);
             setRecording(false);
@@ -151,7 +281,7 @@ export default function PatternPlayer({ rows, steps, name }: { rows: string[]; s
             setMsg("Video pronto. Lo trovi tra i file scaricati.");
           };
           progRef.current = 0; draw(0); setProg(0);
-          recRef.current = { rec, holdUntil: null };
+          recRef.current = { rec, holdUntil: null, voice: withVoice };
           rec.start(250);
           setPlaying(true);
         } catch { fail(); }
@@ -159,6 +289,7 @@ export default function PatternPlayer({ rows, steps, name }: { rows: string[]; s
     } catch { fail(); }
   }
   function fail() {
+    stopVoice(); destRef.current = null; spokenRef.current = -1;
     recRef.current = null; setPlaying(false); setRecording(false);
     setMsg("Non sono riuscita a fare il video. Prova con un altro browser.");
   }
@@ -195,6 +326,19 @@ export default function PatternPlayer({ rows, steps, name }: { rows: string[]; s
         {canRecord && (
           <div className="mt-4">
             <button type="button" className={`btn ${focus}`} onClick={download} disabled={recording}>{recording ? "Sto registrando…" : "Scarica il video"}</button>
+          </div>
+        )}
+        {voiceOk && (
+          <div className="mt-4">
+            <button type="button" className={`btn btn-ghost ${focus}`} aria-pressed={voiceOn} onClick={toggleVoice} disabled={recording}>
+              {voiceOn ? "Voce: accesa" : "Voce: spenta"}
+            </button>
+            <p className="mt-1 text-sm text-muted">
+              {voiceOn && voiceHq
+                ? "La voce di qualità finisce anche nel video scaricato."
+                : "La voce del browser si sente solo qui, non nel file scaricato."}
+            </p>
+            <p className="min-h-5 text-sm font-bold" role="status" aria-live="polite">{voiceNote}</p>
           </div>
         )}
         {reduced && <p className="mt-2 text-sm text-muted">Hai scelto meno movimento: usa &quot;Riga successiva&quot; per andare avanti a mano.</p>}
