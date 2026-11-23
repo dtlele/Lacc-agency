@@ -2,10 +2,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import PatternView from "@/components/PatternView";
+import RoundsView, { type RoundsMeta } from "@/components/RoundsView";
 import { api } from "@/lib/client";
 import type { Step } from "@/lib/pattern";
 
-export default function ProjectClient({ project }: { project: { id: number; name: string; rows: string[]; steps: Step[]; done: number[] } }) {
+export default function ProjectClient({ project }: { project: { id: number; name: string; kind: "grid" | "rounds"; meta: RoundsMeta; rows: string[]; steps: Step[]; done: number[] } }) {
   const router = useRouter();
   const [done, setDone] = useState<number[]>(project.done);
   const [err, setErr] = useState("");
@@ -28,7 +29,9 @@ export default function ProjectClient({ project }: { project: { id: number; name
         <button className="btn btn-ghost" onClick={elimina}>Elimina progetto</button>
       </div>
       {err && <p role="alert" className="font-bold text-warn">{err}</p>}
-      <PatternView rows={project.rows} steps={project.steps} done={done} onToggle={toggle} />
+      {project.kind === "rounds"
+        ? <RoundsView meta={project.meta} steps={project.steps} done={done} onToggle={toggle} />
+        : <PatternView rows={project.rows} steps={project.steps} done={done} onToggle={toggle} name={project.name} />}
     </div>
   );
 }

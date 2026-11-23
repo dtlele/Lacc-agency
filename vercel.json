@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
+  "buildCommand": "npm run typecheck && npm run test && next build",
   "functions": {
     "api/py/*.py": { "maxDuration": 60 }
   }

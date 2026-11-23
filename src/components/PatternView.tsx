@@ -1,8 +1,9 @@
 "use client";
 import type { Step } from "@/lib/pattern";
+import PatternPlayer from "./PatternPlayer";
 
 /** Passi spuntabili + schema a punti: le righe del passo corrente sono evidenziate. Lo schema si legge dal basso verso l'alto. */
-export default function PatternView({ rows, steps, done, onToggle }: { rows: string[]; steps: Step[]; done: number[]; onToggle: (i: number) => void }) {
+export default function PatternView({ rows, steps, done, onToggle, name }: { rows: string[]; steps: Step[]; done: number[]; onToggle: (i: number) => void; name?: string }) {
   const next = steps.findIndex((_, i) => !done.includes(i));
   const lit = new Set(next >= 0 ? steps[next].r : []);
   const pct = Math.round((done.length / steps.length) * 100);
@@ -41,6 +42,10 @@ export default function PatternView({ rows, steps, done, onToggle }: { rows: str
           <span className="flex items-center gap-2"><i className="inline-block h-4 w-4 rounded border-2 border-ink bg-rosa" />Maglia</span>
           <span className="flex items-center gap-2"><i className="inline-block h-4 w-4 rounded border-2 border-ink bg-white" />Vuoto</span>
         </div>
+      </section>
+      <section aria-label="Animazione dello schema" className="card lg:col-span-2">
+        <h2 className="mb-2 text-xl">Guarda lo schema nascere</h2>
+        <PatternPlayer rows={rows} steps={steps} name={name ?? "schema"} />
       </section>
     </div>
   );

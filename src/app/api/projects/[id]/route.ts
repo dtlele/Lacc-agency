@@ -27,6 +27,9 @@ export const PATCH = (req: Request, { params }: Ctx) =>
       await q("UPDATE projects SET done=$1::jsonb, updated_at=now() WHERE id=$2 AND user_id=$3", [JSON.stringify(done), id, s.uid]);
     }
     if (typeof b.name === "string" && b.name.trim()) await q("UPDATE projects SET name=$1, updated_at=now() WHERE id=$2 AND user_id=$3", [b.name.trim().slice(0, 60), id, s.uid]);
+    if (typeof b.category === "string") await q("UPDATE projects SET category=$1, updated_at=now() WHERE id=$2 AND user_id=$3", [b.category.trim().slice(0, 30), id, s.uid]);
+    if (typeof b.difficulty === "string" && ["", "Facile", "Media", "Esperta"].includes(b.difficulty.trim().slice(0, 12))) await q("UPDATE projects SET difficulty=$1, updated_at=now() WHERE id=$2 AND user_id=$3", [b.difficulty.trim(), id, s.uid]);
+    if (typeof b.color === "string" && ["", "Rosa", "Lilla", "Menta", "Giallo"].includes(b.color.trim().slice(0, 12))) await q("UPDATE projects SET color=$1, updated_at=now() WHERE id=$2 AND user_id=$3", [b.color.trim(), id, s.uid]);
     return { ok: true };
   });
 

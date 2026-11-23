@@ -46,6 +46,11 @@ async function init() {
     name TEXT NOT NULL, rows JSONB NOT NULL, steps JSONB NOT NULL, done JSONB NOT NULL DEFAULT '[]',
     thumb TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
   await q("CREATE INDEX IF NOT EXISTS projects_user ON projects(user_id, updated_at DESC)");
+  await q("ALTER TABLE projects ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'grid'");
+  await q("ALTER TABLE projects ADD COLUMN IF NOT EXISTS meta JSONB NOT NULL DEFAULT '{}'");
+  await q("ALTER TABLE projects ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT ''");
+  await q("ALTER TABLE projects ADD COLUMN IF NOT EXISTS difficulty TEXT NOT NULL DEFAULT ''");
+  await q("ALTER TABLE projects ADD COLUMN IF NOT EXISTS color TEXT NOT NULL DEFAULT ''");
   await q("CREATE TABLE IF NOT EXISTS video_cache(cache_key TEXT PRIMARY KEY, query TEXT NOT NULL, videos JSONB NOT NULL DEFAULT '[]', created_at TIMESTAMPTZ NOT NULL DEFAULT now())");
   await q("INSERT INTO meta(key,value) VALUES('schema_v',$1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", [ver]);
 }

@@ -59,7 +59,7 @@ export default function Crea() {
             <h2 className="flex-1 text-2xl">{draft.name}</h2>
             <button className="btn" onClick={salva} disabled={busy}>Salva nei progetti</button>
           </div>
-          <PatternView rows={draft.rows} steps={draft.steps} done={done} onToggle={(i) => setDone((d) => (d.includes(i) ? d.filter((x) => x !== i) : [...d, i]))} />
+          <PatternView rows={draft.rows} steps={draft.steps} name={draft.name} done={done} onToggle={(i) => setDone((d) => (d.includes(i) ? d.filter((x) => x !== i) : [...d, i]))} />
         </div>
       )}
     </div>
