@@ -69,13 +69,21 @@ const risposte=[
  [/uncinetto|misura|mm/i,'Regola semplice: guarda la fascetta del gomitolo e parti dalla misura consigliata, poi fai un campione 10x10 cm.'],
  [/cuore|sottobicchier/i,'Prova lo schema del cuore qui sotto: è piccolo, veloce e ottimo per iniziare.']
 ];
-$('#formChat').onsubmit=e=>{
+const storia=[];
+$('#formChat').onsubmit=async e=>{
   e.preventDefault();const q=$('#qChat').value.trim();if(!q)return;
-  const m=$('#msgs');
+  const m=$('#msgs'),btn=$('#formChat button');
   m.insertAdjacentHTML('beforeend',`<div class="bolla io"></div>`);m.lastElementChild.textContent=q;
-  const r=(risposte.find(x=>x[0].test(q))||[0,'Bella idea! Dimmi che filo hai e che livello sei, e ti preparo i passi giusti.'])[1];
-  setTimeout(()=>{m.insertAdjacentHTML('beforeend',`<div class="bolla lei">${r}</div>`);m.scrollTop=m.scrollHeight},350);
-  $('#qChat').value='';m.scrollTop=m.scrollHeight;
+  $('#qChat').value='';storia.push({role:'user',content:q});
+  m.insertAdjacentHTML('beforeend',`<div class="bolla lei">Sto scrivendo...</div>`);const att=m.lastElementChild;m.scrollTop=m.scrollHeight;btn.disabled=true;
+  let r;
+  try{
+    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:storia})});
+    if(!res.ok)throw new Error();r=(await res.json()).reply;if(!r)throw new Error();
+  }catch{
+    r=(risposte.find(x=>x[0].test(q))||[0,'Bella idea! Dimmi che filo hai e che livello sei, e ti preparo i passi giusti.'])[1];
+  }
+  storia.push({role:'assistant',content:r});att.textContent=r;btn.disabled=false;m.scrollTop=m.scrollHeight;
 };
 
 /* SCHEMA */
@@ -113,6 +121,7 @@ function schema(){
   const prossimo=p.passi.findIndex((_,i)=>!fs.has(i));
   $('#passi').innerHTML=p.passi.map((x,i)=>`<li class="passo ${fs.has(i)?'fatto':''} ${i===prossimo?'attivo':''}" data-i="${i}" tabindex="0" role="checkbox" aria-checked="${fs.has(i)}"><div><b>${x.t}</b><span>${x.s}</span></div></li>`).join('');
   const ev=new Set(prossimo>=0?p.passi[prossimo].r:[]);
+  $('#grafico').style.gridTemplateColumns=`repeat(${p.righe[0].length},minmax(24px,1fr))`;
   $('#grafico').innerHTML=p.righe.map((r,y)=>[...r].map(ch=>`<div class="cella ${ch==='#'?'pieno':''} ${ev.has(y)?'evid':''}">${ch==='#'?'|':'o'}</div>`).join('')).join('');
   const pct=Math.round(fs.size/p.passi.length*100);
   $('#barra').style.width=pct+'%';
@@ -133,6 +142,48 @@ const materiali=[
  ['Marcapunti e aghi','set per rifiniture','marcapunti uncinetto aghi lana']
 ];
 $('#mat').innerHTML=materiali.map(m=>`<a href="https://www.amazon.it/s?k=${encodeURIComponent(m[2])}${AMAZON_TAG?`&tag=${encodeURIComponent(AMAZON_TAG)}`:''}" target="_blank" rel="noopener sponsored"><strong>${m[0]}</strong><span>${m[1]}</span><em>Cerca su Amazon →</em></a>`).join('');
+
+/* DA FOTO A SCHEMA: la griglia di punti la calcola il browser, titolo e passi li scrive l'AI */
+const COLS=22;
+function fotoAGriglia(img){
+  const w=COLS,h=Math.max(8,Math.min(30,Math.round(COLS*img.height/img.width)));
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d',{willReadFrequently:true});
+  cx.drawImage(img,0,0,w,h);const d=cx.getImageData(0,0,w,h).data;
+  const px=(x,y)=>{const i=(y*w+x)*4;return [d[i],d[i+1],d[i+2]]};
+  const bordo=[];for(let x=0;x<w;x++){bordo.push(px(x,0),px(x,h-1))}for(let y=0;y<h;y++){bordo.push(px(0,y),px(w-1,y))}
+  const bg=[0,1,2].map(k=>bordo.map(p=>p[k]).sort((a,b)=>a-b)[bordo.length>>1]);
+  const righe=[];let pieni=0;
+  for(let y=0;y<h;y++){let r='';for(let x=0;x<w;x++){const p=px(x,y);const dist=Math.hypot(p[0]-bg[0],p[1]-bg[1],p[2]-bg[2]);const on=dist>70;if(on)pieni++;r+=on?'#':'.'}righe.push(r)}
+  while(righe.length>4&&!righe[0].includes('#'))righe.shift();
+  while(righe.length>4&&!righe[righe.length-1].includes('#'))righe.pop();
+  const t=document.createElement('canvas');const s=256/Math.max(img.width,img.height);t.width=Math.round(img.width*s);t.height=Math.round(img.height*s);
+  t.getContext('2d').drawImage(img,0,0,t.width,t.height);
+  return {righe,thumb:t.toDataURL('image/jpeg',.7),ok:pieni>w*h*0.04&&pieni<w*h*0.9};
+}
+function passiLocali(n){
+  const da=i=>[...Array(i)].map((_,k)=>n-1-k);const t=Math.max(1,Math.floor((n-1)/3));
+  return [{t:'Prepara il materiale',s:'Filo, uncinetto della misura giusta, forbici e ago da lana.',r:[]},
+   {t:'Base',s:'Parti dal basso e lavora le prime righe seguendo lo schema.',r:da(t)},
+   {t:'Centro',s:'Prosegui riga dopo riga, aumentando o calando dove lo schema cambia.',r:da(2*t).slice(t)},
+   {t:'Parte alta',s:'Completa le ultime righe fino in cima.',r:da(n).slice(2*t)},
+   {t:'Rifinitura',s:'Nascondi i fili e sistema i bordi.',r:[]}];
+}
+$('#fileSchema').onchange=async e=>{
+  const file=e.target.files[0];e.target.value='';if(!file)return;
+  const st=$('#statoSchema');st.textContent='Leggo la foto...';
+  const img=new Image();img.src=URL.createObjectURL(file);
+  try{await img.decode()}catch{st.textContent='Non riesco ad aprire questa foto.';return}
+  const g=fotoAGriglia(img);URL.revokeObjectURL(img.src);
+  if(!g.ok){st.textContent='Non vedo bene l oggetto: prova con una foto su sfondo chiaro e uniforme.';return}
+  st.textContent='Creo lo schema e i passi...';
+  let nome=file.name.replace(/\.[^.]+$/,'').slice(0,30)||'La tua foto',passi=passiLocali(g.righe.length),vero=false;
+  try{
+    const res=await fetch('/api/schema',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({righe:g.righe,thumb:g.thumb})});
+    if(res.ok){const j=await res.json();nome=j.nome;passi=j.passi;vero=true}
+  }catch{}
+  progetti.foto={nome,righe:g.righe,passi};prog='foto';delete fatti.foto;progettiChips();schema();
+  st.textContent=vero?'Schema pronto! Ho scritto i passi guardando la tua foto.':'Schema pronto (passi di base: l AI non ha risposto).';
+};
 
 chipsVideo();mostraVideo();chipsFoto();mostraFoto();progettiChips();schema();
 

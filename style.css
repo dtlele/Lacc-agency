@@ -129,3 +129,7 @@ footer{background:var(--prugna);color:var(--crema);padding:28px 0;text-align:cen
 footer small{display:block;font-weight:500;opacity:.75;margin-top:6px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
+
+/* da foto a schema */
+.dafoto{margin-bottom:22px;display:grid;gap:6px}
+.dafoto label{font-weight:700;display:grid;gap:6px}
