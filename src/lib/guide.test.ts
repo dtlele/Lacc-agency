@@ -33,7 +33,7 @@ describe("cleanGuide", () => {
     const many = Array.from({ length: 60 }, (_, i) => ({ t: "t" + i, s: "x".repeat(900) }));
     const g = cleanGuide({ ...meta, summary: "y".repeat(2000), materials: Array(50).fill("m"), tips: Array(50).fill("c") }, many)!;
     expect(g.steps).toHaveLength(40);
-    expect(g.steps[0].s).toHaveLength(400);
+    expect(g.steps[0].s).toHaveLength(800);
     expect(g.meta.summary).toHaveLength(600);
     expect(g.meta.materials).toHaveLength(20);
     expect(g.meta.tips).toHaveLength(12);
