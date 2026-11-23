@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/client";
 
-type Vid = { id: string; title: string; channel: string; duration: number | null };
+type Vid = { id: string; title: string; channel: string; duration: number | null; subs?: number | null; verified?: boolean };
+const fmtSubs = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(".", ",")} mln` : n >= 1000 ? `${Math.round(n / 1000)} mila` : String(n));
+const canale = (v: Vid) => [v.channel, v.verified ? "canale verificato" : "", v.subs ? `${fmtSubs(v.subs)} iscritti` : ""].filter(Boolean).join(" · ");
 const LIVELLI = [["", "Tutti i livelli"], ["principianti", "Principianti"], ["intermedio", "Intermedio"], ["esperte", "Esperte"]] as const;
 const SUGGERITI = ["amigurumi", "punto ventaglio", "granny square", "borsa a rete", "anello magico"];
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -52,13 +54,13 @@ export default function Video() {
                   <img src={`https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`} alt="" loading="lazy" className="h-full w-full object-cover" />
                   {v.duration ? <span className="absolute bottom-2 right-2 rounded-full bg-ink px-2 py-0.5 text-xs font-bold text-white">{fmt(v.duration)}</span> : null}
                 </span>
-                <span className="block p-3"><b className="line-clamp-2 block">{v.title}</b><span className="text-sm text-muted">{v.channel}</span></span>
+                <span className="block p-3"><b className="line-clamp-2 block">{v.title}</b><span className="text-sm text-muted">{canale(v)}</span></span>
               </button>
             </li>
           ))}
         </ul>
       )}
-      <p className="text-sm text-muted">Risultati da YouTube. Escludiamo i video che dichiarano di essere generati con l&apos;AI; non possiamo però verificare ogni canale.</p>
+      <p className="text-sm text-muted">Risultati da YouTube. Escludiamo i video che dichiarano di essere generati con l&apos;AI (titolo, canale, descrizione e tag) e mostriamo iscritti e spunta di verifica del canale. Sono indizi, non una garanzia: l&apos;ultima parola è tua.</p>
       {res && open !== null && <PlayerModal videos={res.videos} start={open} onClose={() => setOpen(null)} />}
     </div>
   );
@@ -80,7 +82,7 @@ function PlayerModal({ videos, start, onClose }: { videos: Vid[]; start: number;
     <div className="fade-in fixed inset-0 z-50 flex items-end justify-center bg-ink/70 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="Video" onClick={onClose}>
       <div ref={ref} tabIndex={-1} className="card max-h-[92dvh] w-full max-w-3xl overflow-y-auto !rounded-b-none pb-[max(1rem,env(safe-area-inset-bottom))] sm:!rounded-b-[20px]" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-start justify-between gap-3">
-          <div><h2 className="text-xl">{v.title}</h2><p className="text-sm text-muted">{v.channel}{v.duration ? ` · ${fmt(v.duration)}` : ""}</p></div>
+          <div><h2 className="text-xl">{v.title}</h2><p className="text-sm text-muted">{canale(v)}{v.duration ? ` · ${fmt(v.duration)}` : ""}</p></div>
           <button className="btn btn-ghost !min-h-10 !px-4" onClick={onClose} aria-label="Chiudi">Chiudi</button>
         </div>
         <div className="aspect-video w-full overflow-hidden rounded-2xl border-2 border-ink bg-black">

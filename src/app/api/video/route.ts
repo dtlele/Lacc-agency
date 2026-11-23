@@ -4,7 +4,7 @@ import { guard, json } from "@/lib/http";
 
 export const maxDuration = 60;
 
-type Vid = { id: string; title: string; channel: string; duration: number | null };
+type Vid = { id: string; title: string; channel: string; duration: number | null; subs?: number | null; verified?: boolean };
 const LEVELS = ["", "principianti", "intermedio", "esperte"];
 
 /** GET ?q=amigurumi&level=principianti -> tutorial di uncinetto da YouTube (motore Python yt-dlp, cache globale 30 giorni). */
@@ -17,7 +17,7 @@ export const GET = (req: Request) =>
     const level = LEVELS.includes(u.get("level") ?? "") ? (u.get("level") ?? "") : "";
     if (raw.length < 2) return json({ error: "Scrivi cosa vuoi imparare" }, 400);
 
-    const key = `${raw.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim()}|${level}`;
+    const key = `${raw.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim()}|${level}|v2`; // v2: risultati con segnali del canale
     const [hit] = await q<{ videos: Vid[] }>("SELECT videos FROM video_cache WHERE cache_key=$1 AND created_at > now() - interval '30 days'", [key]);
     if (hit?.videos?.length) return { videos: hit.videos, cached: true };
 

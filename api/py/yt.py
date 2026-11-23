@@ -69,6 +69,31 @@ def find_videos(raw_q: str, level: str) -> list:
     return (good + other)[:8]
 
 
+def enrich(videos: list) -> list:
+    """Segnali sul canale (iscritti, spunta di verifica) e controllo AI anche su descrizione e tag. Se qualcosa va storto, i video restano com'erano."""
+    try:
+        import yt_dlp
+        from concurrent.futures import ThreadPoolExecutor
+        opts = {"quiet": True, "skip_download": True, "no_warnings": True, "noplaylist": True, "socket_timeout": 10,
+                "extractor_args": {"youtube": {"skip": ["dash", "hls", "translated_subs"]}}}
+
+        def one(v):
+            try:
+                with yt_dlp.YoutubeDL(opts) as y:
+                    i = y.extract_info("https://www.youtube.com/watch?v=" + v["id"], download=False, process=False)
+                text = " ".join([str(i.get("description") or "")[:1500], " ".join(i.get("tags") or [])])
+                subs = i.get("channel_follower_count")
+                return {**v, "subs": int(subs) if isinstance(subs, (int, float)) else None,
+                        "verified": bool(i.get("channel_is_verified")), "ai": is_ai(v["title"], v["channel"]) or bool(AI_MARK.search(text))}
+            except Exception:
+                return {**v, "subs": None, "verified": False, "ai": False}
+        with ThreadPoolExecutor(4) as ex:
+            out = list(ex.map(one, videos))
+        return [{k: x[k] for k in ("id", "title", "channel", "duration", "subs", "verified")} for x in out if not x["ai"]]
+    except Exception:
+        return videos
+
+
 class handler(BaseHTTPRequestHandler):
     def _send(self, code, obj):
         body = json.dumps(obj, ensure_ascii=False).encode()
@@ -87,6 +112,6 @@ class handler(BaseHTTPRequestHandler):
         if len(q.strip()) < 2:
             return self._send(400, {"error": "query troppo corta"})
         try:
-            self._send(200, {"videos": find_videos(q, level)})
+            self._send(200, {"videos": enrich(find_videos(q, level))})
         except Exception as e:
             self._send(502, {"error": f"ricerca video non riuscita: {str(e)[:150]}"})
