@@ -42,7 +42,7 @@ Ondata 1: P1 + P2 (le due novità visibili). Ondata 2: P3 + P4 + P5.
 | Test automatici | 40/40 | vitest, eseguiti anche nella build Vercel |
 
 ## Aperti, dipendono da Mauro
-- Privacy e termini: bozze, da completare con i dati del titolare.
+- Privacy e termini: testi completi scritti (23/11); mancano solo i dati del titolare, da impostare su Vercel in `NEXT_PUBLIC_TITOLARE` e `NEXT_PUBLIC_CONTATTO_PRIVACY` (finché mancano, le pagine dicono "in fase di definizione").
 - `NEXT_PUBLIC_AMAZON_TAG`: serve il codice affiliato.
 - `YOUTUBE_API_KEY`: per la verifica "creatrice umana" sui canali.
 - Avviso React #418 visto una volta, non riprodotto.
