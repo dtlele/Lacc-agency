@@ -38,7 +38,7 @@ export default function AppShell({ name, children }: { name: string; children: R
         <header className="flex items-center justify-between border-b-2 border-ink px-4 py-3 md:hidden">
           <Link href="/app" className="font-display text-xl text-accent">Filo &amp; Fantasia</Link>
           <span className="flex gap-4 text-sm font-bold text-muted">
-            <Link href="/app/amigurumi" className="underline">Amigurumi</Link><Link href="/app/materiali" className="underline">Materiali</Link><Link href="/app/account" className="underline">Account</Link>
+            <Link href="/app/preferiti" className="underline">Preferiti</Link><Link href="/app/amigurumi" className="underline">Amigurumi</Link><Link href="/app/materiali" className="underline">Materiali</Link><Link href="/app/account" className="underline">Account</Link>
           </span>
         </header>
         <main className="px-4 py-6 md:px-8">{children}</main>

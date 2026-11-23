@@ -67,15 +67,30 @@ Rispondi SOLO con JSON valido, senza altro testo, in questa forma:
 {"nome":"","riassunto":"","difficolta":"Facile|Media|Esperta","tempo":"","materiali":[""],"glossario":[{"termine":"","significato":""}],"passi":[{"titolo":"","istruzione":""}],"consigli":[""]}
 Regole: i passi sono in ordine, da 6 a 25, con istruzioni concrete (numero di maglie, giri, misura dell'uncinetto e filato se mostrati o detti nel video). Il glossario spiega abbreviazioni e punti usati. Non inventare nulla: se un dato non c'è nel video, lascialo vuoto. "difficolta" può essere solo Facile, Media o Esperta (o vuoto). Non usare i nomi delle difficoltà tradotti.`;
     const refund = async () => { if (s.role !== "admin") { await rateRefund("analyze_user", `u${s.uid}`); await rateRefund("analyze_global", "all"); } };
+    // Un errore passeggero del servizio AI (429/5xx, rete) faceva fallire l'analisi senza lasciare traccia:
+    // ora si riprova una volta sola, se resta tempo prima del limite della funzione (60 s), e l'errore vero finisce nei log.
+    const started = Date.now();
+    const askAI = (timeoutMs: number) => llm(process.env.LLM_MODEL_VIDEO || MODEL_VISION(), [{
+      role: "user",
+      content: [{ type: "text", text: prompt }, { type: "video_url", video_url: { url: `https://www.youtube.com/watch?v=${videoId}` } }],
+    }], { json: true, max: 4000, timeoutMs });
     let text = "";
     try {
-      text = await llm(process.env.LLM_MODEL_VIDEO || MODEL_VISION(), [{
-        role: "user",
-        content: [{ type: "text", text: prompt }, { type: "video_url", video_url: { url: `https://www.youtube.com/watch?v=${videoId}` } }],
-      }], { json: true, max: 4000, timeoutMs: 55000 });
-    } catch {
-      await refund();
-      return json({ error: "Non sono riuscita ad analizzare il video in questo momento: riprova tra poco." }, 502);
+      text = await askAI(50000);
+    } catch (e1) {
+      const left = 56000 - (Date.now() - started);
+      console.error(`[analyze] 1° tentativo fallito per ${videoId} dopo ${Date.now() - started} ms:`, e1 instanceof Error ? e1.message : e1);
+      if (left < 15000) {
+        await refund();
+        return json({ error: "Il servizio di analisi non ha risposto in tempo: riprova tra poco." }, 504);
+      }
+      try {
+        text = await askAI(left);
+      } catch (e2) {
+        console.error(`[analyze] 2° tentativo fallito per ${videoId}:`, e2 instanceof Error ? e2.message : e2);
+        await refund();
+        return json({ error: "Non sono riuscita ad analizzare il video in questo momento: riprova tra poco (l'analisi non ti è stata addebitata)." }, 502);
+      }
     }
     const j = parseJson(text);
     const bad = async () => { await refund(); return json({ error: "Non sono riuscita a ricavare i passi da questo video: potrebbe non essere un tutorial" }, 502); };
