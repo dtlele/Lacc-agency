@@ -41,8 +41,14 @@ Ondata 1: P1 + P2 (le due novità visibili). Ondata 2: P3 + P4 + P5.
 | Account e pannello admin | OK dal vivo (pagine) | codice rivisto a mano: password richiesta, ultimo admin protetto |
 | Test automatici | 40/40 | vitest, eseguiti anche nella build Vercel |
 
+| Voce narrante (livello A, voce del browser) | OK dal vivo (pulsante presente, video scaricato) | ascolto non verificabile da automazione |
+| Voce di qualità (livello B, ElevenLabs) | Pronta, non attiva | `GET /api/voice` -> enabled:false, POST -> 501 finché manca `ELEVENLABS_API_KEY`; cache SQL provata in locale |
+| Segnali canale YouTube (iscritti, AI in descrizione) | Pronti, non attivi dal vivo | YouTube blocca yt-dlp dai server Vercel; con `YOUTUBE_API_KEY` usa la API ufficiale (provata con risposta simulata) |
+
 ## Aperti, dipendono da Mauro
 - Privacy e termini: testi completi scritti (23/11); mancano solo i dati del titolare, da impostare su Vercel in `NEXT_PUBLIC_TITOLARE` e `NEXT_PUBLIC_CONTATTO_PRIVACY` (finché mancano, le pagine dicono "in fase di definizione").
 - `NEXT_PUBLIC_AMAZON_TAG`: serve il codice affiliato.
-- `YOUTUBE_API_KEY`: per la verifica "creatrice umana" sui canali.
+- `YOUTUBE_API_KEY` (Google, YouTube Data API v3): attiva iscritti del canale e controllo AI sulla descrizione.
+- `ELEVENLABS_API_KEY` (e facoltativo `ELEVENLABS_VOICE_ID`): attiva la voce di qualità nel video scaricato.
+- `NEXT_PUBLIC_TITOLARE` e `NEXT_PUBLIC_CONTATTO_PRIVACY`: dati del titolare per privacy e termini.
 - Avviso React #418 visto una volta, non riprodotto.
