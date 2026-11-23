@@ -5,8 +5,8 @@ import { normalizeVoiceText, voiceCacheKey } from "@/lib/voice";
 
 export const maxDuration = 60;
 
-/** Voce predefinita ElevenLabs ("Rachel", multilingue). Si cambia con ELEVENLABS_VOICE_ID. */
-const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
+/** Voce predefinita ElevenLabs ("Sarah", voce standard: Rachel e le voci di libreria non sono disponibili via API nel piano gratuito). Si cambia con ELEVENLABS_VOICE_ID. */
+const DEFAULT_VOICE_ID = "EXAVITQu4vr4xnSDxMaL";
 
 /** GET -> { enabled }: dice se la voce di qualità è attiva, senza consumare quota. */
 export const GET = () =>
