@@ -5,7 +5,7 @@ export const metadata = { title: "Termini" };
 export default function Termini() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
-      <Link href="/" className="font-display text-2xl text-accent">Filo &amp; Fantasia</Link>
+      <a href="/" className="font-display text-2xl text-accent">Filo &amp; Fantasia</a>
       <h1 className="mt-6 text-4xl">Termini di utilizzo</h1>
       <p className="mt-2 text-sm text-muted">Bozza di lavoro: da completare con i dati del titolare prima del lancio pubblico.</p>
       <div className="mt-6 grid gap-4">
