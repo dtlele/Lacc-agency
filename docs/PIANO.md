@@ -45,6 +45,8 @@ Ondata 1: P1 + P2 (le due novità visibili). Ondata 2: P3 + P4 + P5.
 | Voce di qualità (livello B, ElevenLabs) | OK dal vivo (23/11) | voce Sarah, mp3 26 KB: 1ª chiamata 735 ms, 2ª dalla memoria 222 ms; video scaricato con traccia audio Opus |
 | Segnali canale YouTube (iscritti, AI in descrizione) | OK dal vivo (23/11) | con `YOUTUBE_API_KEY` via API ufficiale: es. "468 mila iscritti" sulle schede |
 
+| Solo tutorial veri, non dimostrazioni (24/11) | OK in locale con API reale | punteggio su titolo, descrizione (materiali, capitoli, istruzioni) e durata; scartati vetrine, compilation, timelapse, short, dirette; 8 test Python in `api/py/test_yt.py` |
+
 ## Aperti, dipendono da Mauro
 - Privacy e termini: testi completi scritti (23/11); mancano solo i dati del titolare, da impostare su Vercel in `NEXT_PUBLIC_TITOLARE` e `NEXT_PUBLIC_CONTATTO_PRIVACY` (finché mancano, le pagine dicono "in fase di definizione").
 - `NEXT_PUBLIC_AMAZON_TAG`: serve il codice affiliato.

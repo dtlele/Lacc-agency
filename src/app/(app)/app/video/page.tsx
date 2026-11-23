@@ -60,7 +60,7 @@ export default function Video() {
           ))}
         </ul>
       )}
-      <p className="text-sm text-muted">Risultati da YouTube. Escludiamo i video che dichiarano di essere generati con l&apos;AI (titolo, canale, descrizione e tag) e mostriamo iscritti e spunta di verifica del canale. Sono indizi, non una garanzia: l&apos;ultima parola è tua.</p>
+      <p className="text-sm text-muted">Risultati da YouTube. Mostriamo solo video che insegnano a fare il lavoro (tutorial, lezioni, passo passo) e scartiamo vetrine di lavori finiti, compilation, video velocizzati e short. Escludiamo anche i video che si dichiarano generati con l&apos;AI. Sono indizi su titolo, descrizione e durata, non una garanzia: l&apos;ultima parola è tua.</p>
       {res && open !== null && <PlayerModal videos={res.videos} start={open} onClose={() => setOpen(null)} />}
     </div>
   );
