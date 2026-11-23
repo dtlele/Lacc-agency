@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/* Filo & Fantasia: crema e prugna come base, rosa solo dove si agisce, lilla/menta/pesca per distinguere le sezioni */
+:root {
+  color-scheme: light;
+  --bg: #fff7ee; --card: #ffffff; --ink: #3d1747; --muted: #6b4a73; --line: #ead9e6;
+  --accent: #c92a68; --accent-ink: #ffffff; --rosa: #ff4f8b; --rosa-chiaro: #ffc2d8;
+  --lilla: #c3aaf7; --menta: #a5e8cf; --pesca: #ffd9bf; --giallo: #ffe066; --warn: #b42318;
+}
+@theme inline {
+  --color-bg: var(--bg); --color-card: var(--card); --color-ink: var(--ink); --color-muted: var(--muted); --color-line: var(--line);
+  --color-accent: var(--accent); --color-rosa: var(--rosa); --color-rosa-chiaro: var(--rosa-chiaro);
+  --color-lilla: var(--lilla); --color-menta: var(--menta); --color-pesca: var(--pesca); --color-giallo: var(--giallo); --color-warn: var(--warn);
+  --font-display: var(--font-bagel), "Arial Rounded MT Bold", system-ui, sans-serif;
+  --font-sans: var(--font-quicksand), "Trebuchet MS", system-ui, sans-serif;
+}
+html { -webkit-text-size-adjust: 100%; overflow-x: clip; scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-weight: 500; line-height: 1.5; min-height: 100dvh; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; line-height: 1.1; text-wrap: balance; }
+
+.card { background: var(--card); border: 2px solid var(--ink); border-radius: 20px; padding: 1.1rem; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 46px; padding: 0 1.4rem; border-radius: 999px; border: 2px solid var(--ink);
+  background: var(--accent); color: var(--accent-ink); font-weight: 700; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); transition: transform .12s, box-shadow .12s; }
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+.btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.btn:disabled { opacity: .55; cursor: default; transform: none; box-shadow: 3px 3px 0 var(--ink); }
+.btn-ghost { background: var(--card); color: var(--ink); }
+.input { width: 100%; min-height: 46px; padding: 0 1rem; border: 2px solid var(--ink); border-radius: 14px; background: #fff; color: var(--ink); font: inherit; font-weight: 600; }
+.chip { min-height: 38px; padding: 0 .95rem; border: 2px solid var(--ink); border-radius: 999px; background: #fff; font-weight: 700; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+/* schema dei punti: la riga da lavorare ora si illumina */
+.cella { aspect-ratio: 1; min-width: 22px; border: 1.5px solid var(--ink); border-radius: 5px; background: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.cella.pieno { background: var(--rosa); color: #fff; }
+.cella.evid { box-shadow: 0 0 0 3px var(--giallo); position: relative; z-index: 1; }
+.fade-in { animation: fade .25s ease-out; }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

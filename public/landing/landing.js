@@ -78,8 +78,7 @@ $('#formChat').onsubmit=async e=>{
   m.insertAdjacentHTML('beforeend',`<div class="bolla lei">Sto scrivendo...</div>`);const att=m.lastElementChild;m.scrollTop=m.scrollHeight;btn.disabled=true;
   let r;
   try{
-    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:storia})});
-    if(!res.ok)throw new Error();r=(await res.json()).reply;if(!r)throw new Error();
+    throw new Error();
   }catch{
     r=(risposte.find(x=>x[0].test(q))||[0,'Bella idea! Dimmi che filo hai e che livello sei, e ti preparo i passi giusti.'])[1];
   }
@@ -178,11 +177,10 @@ $('#fileSchema').onchange=async e=>{
   st.textContent='Creo lo schema e i passi...';
   let nome=file.name.replace(/\.[^.]+$/,'').slice(0,30)||'La tua foto',passi=passiLocali(g.righe.length),vero=false;
   try{
-    const res=await fetch('/api/schema',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({righe:g.righe,thumb:g.thumb})});
-    if(res.ok){const j=await res.json();nome=j.nome;passi=j.passi;vero=true}
+    throw new Error();
   }catch{}
   progetti.foto={nome,righe:g.righe,passi};prog='foto';delete fatti.foto;progettiChips();schema();
-  st.textContent=vero?'Schema pronto! Ho scritto i passi guardando la tua foto.':'Schema pronto (passi di base: l AI non ha risposto).';
+  st.textContent=vero?'':'Schema pronto (passi di base). Con un account i passi li scrive l AI guardando la tua foto e li salvi nei progetti.';
 };
 
 chipsVideo();mostraVideo();chipsFoto();mostraFoto();progettiChips();schema();
