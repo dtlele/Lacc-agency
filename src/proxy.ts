@@ -7,7 +7,7 @@ const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 // pagine pubbliche: landing, accesso, note legali; tutto il resto richiede la sessione (firma verificata nelle route/pagine)
 const PUBLIC_EXACT = ["/", "/accedi", "/privacy", "/termini", "/robots.txt", "/sitemap.xml", "/manifest.webmanifest", "/favicon.ico"];
-const PUBLIC_PREFIX = ["/landing/", "/api/auth/", "/_next"];
+const PUBLIC_PREFIX = ["/landing/", "/api/auth/", "/api/py/", "/_next"]; // /api/py è protetta dalla chiave interna
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
