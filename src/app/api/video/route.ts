@@ -17,7 +17,7 @@ export const GET = (req: Request) =>
     const level = LEVELS.includes(u.get("level") ?? "") ? (u.get("level") ?? "") : "";
     if (raw.length < 2) return json({ error: "Scrivi cosa vuoi imparare" }, 400);
 
-    const key = `${raw.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim()}|${level}|v2`; // v2: risultati con segnali del canale
+    const key = `${raw.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim()}|${level}|v3`; // v2: risultati con segnali del canale
     const [hit] = await q<{ videos: Vid[] }>("SELECT videos FROM video_cache WHERE cache_key=$1 AND created_at > now() - interval '30 days'", [key]);
     if (hit?.videos?.length) return { videos: hit.videos, cached: true };
 
@@ -39,5 +39,5 @@ export const GET = (req: Request) =>
     if (videos.length)
       await q(`INSERT INTO video_cache(cache_key, query, videos, created_at) VALUES($1,$2,$3::jsonb,now())
                ON CONFLICT (cache_key) DO UPDATE SET videos=EXCLUDED.videos, created_at=now()`, [key, raw, JSON.stringify(videos)]);
-    return { videos, cached: false };
+    return { videos, cached: false, enrich_error: d.enrich_error ?? null };
   });

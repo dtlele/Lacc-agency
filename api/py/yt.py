@@ -69,8 +69,38 @@ def find_videos(raw_q: str, level: str) -> list:
     return (good + other)[:8]
 
 
+def enrich_api(videos: list, key: str) -> list:
+    """Con YOUTUBE_API_KEY: iscritti del canale e descrizione/tag dalla API ufficiale (dai server cloud yt-dlp è bloccato da YouTube)."""
+    def get(path, params):
+        with urllib.request.urlopen("https://www.googleapis.com/youtube/v3/" + path + "?" + urllib.parse.urlencode({**params, "key": key}), timeout=12) as r:
+            return json.loads(r.read().decode("utf-8"))
+    ids = ",".join(v["id"] for v in videos)
+    vd = {i["id"]: i for i in get("videos", {"part": "snippet", "id": ids, "maxResults": 20}).get("items", [])}
+    cids = ",".join({(i.get("snippet") or {}).get("channelId", "") for i in vd.values() if (i.get("snippet") or {}).get("channelId")})
+    ch = {c["id"]: c for c in get("channels", {"part": "statistics", "id": cids, "maxResults": 50}).get("items", [])} if cids else {}
+    out = []
+    for v in videos:
+        sn = (vd.get(v["id"]) or {}).get("snippet") or {}
+        text = " ".join([str(sn.get("description") or "")[:1500], " ".join(sn.get("tags") or [])])
+        if is_ai(v["title"], v["channel"]) or AI_MARK.search(text):
+            continue
+        st = (ch.get(sn.get("channelId")) or {}).get("statistics") or {}
+        subs = int(st["subscriberCount"]) if st.get("subscriberCount") and not st.get("hiddenSubscriberCount") else None
+        out.append({**v, "subs": subs, "verified": False})
+    return out
+
+
+NOTE: list = []  # primo errore di lettura dei canali, per la diagnosi
+
+
 def enrich(videos: list) -> list:
     """Segnali sul canale (iscritti, spunta di verifica) e controllo AI anche su descrizione e tag. Se qualcosa va storto, i video restano com'erano."""
+    key = os.environ.get("YOUTUBE_API_KEY", "").strip()
+    if key:
+        try:
+            return enrich_api(videos, key)
+        except Exception as e:
+            NOTE.append("api: " + str(e)[:120])
     try:
         import yt_dlp
         from concurrent.futures import ThreadPoolExecutor
@@ -85,7 +115,8 @@ def enrich(videos: list) -> list:
                 subs = i.get("channel_follower_count")
                 return {**v, "subs": int(subs) if isinstance(subs, (int, float)) else None,
                         "verified": bool(i.get("channel_is_verified")), "ai": is_ai(v["title"], v["channel"]) or bool(AI_MARK.search(text))}
-            except Exception:
+            except Exception as e:
+                NOTE.append(str(e)[:160])
                 return {**v, "subs": None, "verified": False, "ai": False}
         with ThreadPoolExecutor(4) as ex:
             out = list(ex.map(one, videos))
@@ -112,6 +143,8 @@ class handler(BaseHTTPRequestHandler):
         if len(q.strip()) < 2:
             return self._send(400, {"error": "query troppo corta"})
         try:
-            self._send(200, {"videos": enrich(find_videos(q, level))})
+            NOTE.clear()
+            vids = enrich(find_videos(q, level))
+            self._send(200, {"videos": vids, "enrich_error": NOTE[0] if NOTE else None})
         except Exception as e:
             self._send(502, {"error": f"ricerca video non riuscita: {str(e)[:150]}"})
