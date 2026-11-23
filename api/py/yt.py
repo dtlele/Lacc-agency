@@ -20,6 +20,11 @@ NEG_TITLE = re.compile(r"(showcase|\bhaul\b|unboxing|\bho (fatto|realizzato|crea
 POS_DESC = re.compile(r"(occorrente|materiali|ti serve|ti servono|ti servir\w+|abbreviazioni|punti utilizzati|punti usati|passo[ -]?passo|tutorial|istruzioni|schema|spiego|ripeti|ripetere|maglia (bassa|alta|alta doppia)|catenella|anello magico|\bgiro \d|\bgiri\b|capitoli|chapters)", re.I)
 TIMESTAMP = re.compile(r"(?m)^\s*\(?\d{1,2}:\d{2}")
 MIN_SCORE = 2
+# Pertinenza: il video deve parlare davvero di uncinetto (titolo, tag o descrizione), qualunque cosa abbia restituito YouTube
+CROCHET = re.compile(r"(uncinett|crochet|croch[eéê]\b|amigurumi|ganchillo|ganchet|h[aä]keln|h[aä]kel|\bvirkka|\bhaken\b|szyde[lł]k|\bcroșet|\bkroheli|"
+                     r"maglia (alta|bassa|bassissima|alta doppia|doppia|a catenella)|punto (alto|basso|bassissimo|scalare|ventaglio|gambero|smock|riso|catenella)|"
+                     r"catenell|anello magico|magic (ring|circle)|\bgranny|\bpunto (a )?(maglia )?(alta|bassa)\b|puntada|punto (bajo|alto)|"
+                     r"chain stitch|single crochet|double crochet|slip stitch|filato|\bgiro \d)", re.I)
 
 
 def build_query(raw_q: str, level: str) -> str:
@@ -62,6 +67,17 @@ def tutorial_score(title: str, description: str = "", tags=None, duration=None, 
     return score, "ok" if score >= MIN_SCORE else "pochi indizi di tutorial"
 
 
+def is_crochet(title: str, description: str = "", tags=None) -> bool:
+    return bool(CROCHET.search(f"{title or ''} {' '.join(tags or [])} {(description or '')[:2500]}"))
+
+
+def video_score(title: str, description: str = "", tags=None, duration=None, live: bool = False):
+    """Come tutorial_score, ma scarta (-9) i video che non parlano di uncinetto."""
+    if not is_crochet(title, description, tags):
+        return -9, "non pertinente"
+    return tutorial_score(title, description, tags, duration, live)
+
+
 def iso_seconds(s: str):
     m = re.fullmatch(r"P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", s or "")
     if not m:
@@ -75,16 +91,21 @@ def _api(path: str, params: dict, key: str) -> dict:
         return json.loads(r.read().decode("utf-8"))
 
 
-def find_videos(raw_q: str, level: str) -> list:
-    """Candidati grezzi (fino a 25): id, titolo, canale, durata se già nota."""
+TOKEN_RE = re.compile(r"[A-Za-z0-9_-]{1,100}")
+
+
+def find_videos(raw_q: str, level: str, token: str = ""):
+    """Candidati grezzi (fino a 25) e token della pagina successiva (solo con la API ufficiale): id, titolo, canale, durata se già nota."""
     full_q = build_query(raw_q, level)
     if not full_q:
-        return []
+        return [], None
     key = os.environ.get("YOUTUBE_API_KEY", "").strip()
     if key:
         try:
-            d = _api("search", {"part": "snippet", "q": full_q, "type": "video", "videoEmbeddable": "true",
-                                "maxResults": 25, "relevanceLanguage": "it"}, key)
+            params = {"part": "snippet", "q": full_q, "type": "video", "videoEmbeddable": "true", "maxResults": 25, "relevanceLanguage": "it"}
+            if token:
+                params["pageToken"] = token
+            d = _api("search", params, key)
             out = []
             for it in d.get("items") or []:
                 vid = (it.get("id") or {}).get("videoId")
@@ -92,9 +113,14 @@ def find_videos(raw_q: str, level: str) -> list:
                 if vid:
                     out.append({"id": vid, "title": html.unescape(sn.get("title") or "")[:110], "channel": html.unescape(sn.get("channelTitle") or "")[:60], "duration": None})
             if out:
-                return out
+                return out, d.get("nextPageToken") if TOKEN_RE.fullmatch(str(d.get("nextPageToken") or "")) else None
+            if token:
+                return [], None
         except Exception:
-            pass
+            if token:
+                raise
+    if token:
+        return [], None
     import yt_dlp
     with yt_dlp.YoutubeDL({"quiet": True, "extract_flat": True, "skip_download": True, "no_warnings": True}) as y:
         info = y.extract_info(f"ytsearch25:{full_q}", download=False)
@@ -106,7 +132,7 @@ def find_videos(raw_q: str, level: str) -> list:
         dur = e.get("duration")
         out.append({"id": str(vid), "title": str(e.get("title") or "")[:110], "channel": str(e.get("channel") or e.get("uploader") or "")[:60],
                     "duration": int(dur) if isinstance(dur, (int, float)) and dur > 0 else None})
-    return out
+    return out, None
 
 
 NOTE: list = []  # primo errore di lettura dei canali, per la diagnosi
@@ -126,7 +152,7 @@ def enrich_api(videos: list, key: str) -> list:
         if is_ai(v["title"], v["channel"]) or AI_MARK.search(desc[:1500] + " " + " ".join(tags)):
             continue
         dur = iso_seconds(cd.get("duration")) if cd.get("duration") else v.get("duration")
-        score, _ = tutorial_score(v["title"], desc, tags, dur, live=sn.get("liveBroadcastContent") in ("live", "upcoming"))
+        score, _ = video_score(v["title"], desc, tags, dur, live=sn.get("liveBroadcastContent") in ("live", "upcoming"))
         st = (ch.get(sn.get("channelId")) or {}).get("statistics") or {}
         subs = int(st["subscriberCount"]) if st.get("subscriberCount") and not st.get("hiddenSubscriberCount") else None
         out.append({**v, "duration": dur, "subs": subs, "verified": False, "score": score})
@@ -148,12 +174,12 @@ def enrich_ytdlp(videos: list) -> list:
             if is_ai(v["title"], v["channel"]) or AI_MARK.search(desc[:1500] + " " + " ".join(tags)):
                 return None
             dur = int(i["duration"]) if isinstance(i.get("duration"), (int, float)) else v.get("duration")
-            score, _ = tutorial_score(v["title"], desc, tags, dur, live=bool(i.get("is_live")))
+            score, _ = video_score(v["title"], desc, tags, dur, live=bool(i.get("is_live")))
             subs = i.get("channel_follower_count")
             return {**v, "duration": dur, "subs": int(subs) if isinstance(subs, (int, float)) else None, "verified": bool(i.get("channel_is_verified")), "score": score}
         except Exception as e:
             NOTE.append(str(e)[:160])
-            score, _ = tutorial_score(v["title"], "", None, v.get("duration"))
+            score, _ = video_score(v["title"], "", None, v.get("duration"))
             return {**v, "subs": None, "verified": False, "score": score} if not is_ai(v["title"], v["channel"]) else None
     with ThreadPoolExecutor(4) as ex:
         return [x for x in ex.map(one, videos[:16]) if x]
@@ -176,11 +202,11 @@ def pick_tutorials(videos: list) -> list:
             rich = []
             for v in videos:
                 if not is_ai(v["title"], v["channel"]):
-                    s, _ = tutorial_score(v["title"], "", None, v.get("duration"))
+                    s, _ = video_score(v["title"], "", None, v.get("duration"))
                     rich.append({**v, "subs": None, "verified": False, "score": s})
     keep = [v for v in rich if v["score"] >= MIN_SCORE]
     keep.sort(key=lambda v: (-v["score"], -(v.get("subs") or 0)))
-    return [{k: v.get(k) for k in ("id", "title", "channel", "duration", "subs", "verified")} for v in keep[:8]]
+    return [{k: v.get(k) for k in ("id", "title", "channel", "duration", "subs", "verified")} for v in keep]
 
 
 class handler(BaseHTTPRequestHandler):
@@ -198,11 +224,15 @@ class handler(BaseHTTPRequestHandler):
         qs = parse_qs(urlparse(self.path).query)
         q = (qs.get("q") or [""])[0]
         level = (qs.get("level") or [""])[0]
+        token = (qs.get("token") or [""])[0]
+        if token and not TOKEN_RE.fullmatch(token):
+            return self._send(400, {"error": "token non valido"})
         if len(q.strip()) < 2:
             return self._send(400, {"error": "query troppo corta"})
         try:
             NOTE.clear()
-            vids = pick_tutorials(find_videos(q, level))
-            self._send(200, {"videos": vids, "enrich_error": NOTE[0] if NOTE else None})
+            cand, nxt = find_videos(q, level, token)
+            vids = pick_tutorials(cand)
+            self._send(200, {"videos": vids, "nextToken": nxt, "enrich_error": NOTE[0] if NOTE else None})
         except Exception as e:
             self._send(502, {"error": f"ricerca video non riuscita: {str(e)[:150]}"})

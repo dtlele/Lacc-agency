@@ -9,6 +9,7 @@ const NAV = [
   { href: "/app/progetti", label: "Progetti", icon: "M4 4h16v16H4zM4 10h16M10 4v16" },
   { href: "/app/chat", label: "Chat", icon: "M4 5h16v11H9l-5 4z" },
   { href: "/app/video", label: "Video", icon: "M5 4l14 8-14 8z" },
+  { href: "/app/preferiti", label: "Preferiti", icon: "M12 21s-8.5-5.4-8.5-11.2A4.8 4.8 0 0 1 12 7.1a4.8 4.8 0 0 1 8.5 2.7C20.5 15.6 12 21 12 21z", desk: true },
   { href: "/app/amigurumi", label: "Amigurumi", icon: "M12 3a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM8 21l4-6 4 6", desk: true },
   { href: "/app/materiali", label: "Materiali", icon: "M6 7h12l-1 13H7zM9 7a3 3 0 0 1 6 0", desk: true },
   { href: "/app/account", label: "Account", icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0", desk: true },

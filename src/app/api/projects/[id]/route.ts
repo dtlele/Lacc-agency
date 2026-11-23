@@ -30,6 +30,7 @@ export const PATCH = (req: Request, { params }: Ctx) =>
     if (typeof b.category === "string") await q("UPDATE projects SET category=$1, updated_at=now() WHERE id=$2 AND user_id=$3", [b.category.trim().slice(0, 30), id, s.uid]);
     if (typeof b.difficulty === "string" && ["", "Facile", "Media", "Esperta"].includes(b.difficulty.trim().slice(0, 12))) await q("UPDATE projects SET difficulty=$1, updated_at=now() WHERE id=$2 AND user_id=$3", [b.difficulty.trim(), id, s.uid]);
     if (typeof b.color === "string" && ["", "Rosa", "Lilla", "Menta", "Giallo"].includes(b.color.trim().slice(0, 12))) await q("UPDATE projects SET color=$1, updated_at=now() WHERE id=$2 AND user_id=$3", [b.color.trim(), id, s.uid]);
+    if (typeof b.favorite === "boolean") await q("UPDATE projects SET favorite=$1 WHERE id=$2 AND user_id=$3", [b.favorite, id, s.uid]);
     return { ok: true };
   });
 

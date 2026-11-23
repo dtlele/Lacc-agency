@@ -1,5 +1,5 @@
 /** Chiamata a OpenRouter (stessa chiave e stessi modelli di VolantiGo). */
-export async function llm(model: string, messages: unknown[], opts: { max?: number; json?: boolean } = {}): Promise<string> {
+export async function llm(model: string, messages: unknown[], opts: { max?: number; json?: boolean; timeoutMs?: number } = {}): Promise<string> {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) throw new Error("chiave AI mancante");
   const body: Record<string, unknown> = { model, messages, max_tokens: opts.max ?? 700, temperature: 0.6 };
@@ -8,7 +8,7 @@ export async function llm(model: string, messages: unknown[], opts: { max?: numb
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + key, "X-Title": "Filo e Fantasia" },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(45000),
+    signal: AbortSignal.timeout(opts.timeoutMs ?? 45000),
   });
   if (!r.ok) throw new Error("ai " + r.status);
   const j = await r.json();

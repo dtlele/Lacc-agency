@@ -53,5 +53,10 @@ async function init() {
   await q("ALTER TABLE projects ADD COLUMN IF NOT EXISTS color TEXT NOT NULL DEFAULT ''");
   await q("CREATE TABLE IF NOT EXISTS video_cache(cache_key TEXT PRIMARY KEY, query TEXT NOT NULL, videos JSONB NOT NULL DEFAULT '[]', created_at TIMESTAMPTZ NOT NULL DEFAULT now())");
   await q("CREATE TABLE IF NOT EXISTS voice_cache(cache_key TEXT PRIMARY KEY, audio BYTEA NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())");
+  await q("ALTER TABLE projects ADD COLUMN IF NOT EXISTS favorite BOOLEAN NOT NULL DEFAULT false");
+  await q(`CREATE TABLE IF NOT EXISTS video_favorites(
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, video_id TEXT NOT NULL, title TEXT NOT NULL DEFAULT '', channel TEXT NOT NULL DEFAULT '',
+    duration INT, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(user_id, video_id))`);
+  await q("CREATE TABLE IF NOT EXISTS video_analysis(cache_key TEXT PRIMARY KEY, data JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())");
   await q("INSERT INTO meta(key,value) VALUES('schema_v',$1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", [ver]);
 }

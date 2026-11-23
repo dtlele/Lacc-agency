@@ -46,6 +46,9 @@ Ondata 1: P1 + P2 (le due novità visibili). Ondata 2: P3 + P4 + P5.
 | Segnali canale YouTube (iscritti, AI in descrizione) | OK dal vivo (23/11) | con `YOUTUBE_API_KEY` via API ufficiale: es. "468 mila iscritti" sulle schede |
 
 | Solo tutorial veri, non dimostrazioni (24/11) | OK in locale con API reale | punteggio su titolo, descrizione (materiali, capitoli, istruzioni) e durata; scartati vetrine, compilation, timelapse, short, dirette; 8 test Python in `api/py/test_yt.py` |
+| Cuoricino e Preferiti (progetti e video) | OK in locale | PATCH 200, persiste dopo ricarica, filtro "Solo preferiti", pagina /app/preferiti |
+| Scheda progetto da video (doppia conferma) | Pronta; analisi reale da provare dal vivo | `confirm:2` obbligatorio (400 altrimenti); durata verificata dal server; 3 analisi al giorno per utente, 30 in totale; credito rimborsato se fallisce |
+| Tutti i risultati + pagine; pertinenza uncinetto | OK dal vivo dopo deploy | vedi prove sotto |
 
 ## Aperti, dipendono da Mauro
 - Privacy e termini: testi completi scritti (23/11); mancano solo i dati del titolare, da impostare su Vercel in `NEXT_PUBLIC_TITOLARE` e `NEXT_PUBLIC_CONTATTO_PRIVACY` (finché mancano, le pagine dicono "in fase di definizione").

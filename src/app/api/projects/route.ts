@@ -2,6 +2,7 @@ import { q } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { guard, json, readBody } from "@/lib/http";
 import { cleanRows, cleanSteps } from "@/lib/pattern";
+import { cleanGuide } from "@/lib/guide";
 
 const MAX_PER_USER = 50;
 
@@ -16,17 +17,23 @@ export const POST = (req: Request) =>
   guard(async () => {
     const s = await requireUser();
     const b = await readBody(req);
-    const kind = b.kind === "rounds" ? "rounds" : "grid";
-    const rows = kind === "rounds" ? [] : cleanRows(b.rows);
+    const kind = b.kind === "rounds" ? "rounds" : b.kind === "guide" ? "guide" : "grid";
+    const rows = kind === "grid" ? cleanRows(b.rows) : [];
     if (!rows) return json({ error: "Schema non valido" }, 400);
     let meta: Record<string, unknown> = {};
+    let guideSteps: unknown = null;
+    if (kind === "guide") {
+      const g = cleanGuide(b.meta, b.steps);
+      if (!g) return json({ error: "Scheda non valida" }, 400);
+      meta = g.meta; guideSteps = g.steps;
+    }
     if (kind === "rounds") {
       const m = b.meta as { shape?: unknown; size?: unknown; rounds?: unknown } | undefined;
       const rounds = Array.isArray(m?.rounds) ? m.rounds.slice(0, 80).map(Number) : [];
       if (rounds.length < 2 || rounds.some((n) => !Number.isInteger(n) || n < 1 || n > 400)) return json({ error: "Giri non validi" }, 400);
       meta = { shape: String(m?.shape ?? "").slice(0, 20), size: Math.min(400, Math.max(1, Number(m?.size) || 0)), rounds };
     }
-    const steps = cleanSteps(b.steps, kind === "rounds" ? 80 : rows.length);
+    const steps = kind === "guide" ? (guideSteps as { t: string; s: string; r: number[] }[]) : cleanSteps(b.steps, kind === "rounds" ? 80 : rows.length);
     const pick = (v: unknown, max = 30) => String(v ?? "").trim().slice(0, max);
     if (steps.length < 2) return json({ error: "Servono almeno due passi" }, 400);
     const name = String(b.name ?? "").trim().slice(0, 60) || "Il mio progetto";

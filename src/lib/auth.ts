@@ -74,6 +74,10 @@ export async function rateOk(kind: string, who: string, max: number, windowMin: 
   await q("DELETE FROM rate_events WHERE at < now() - interval '2 days'").catch(() => undefined);
   return true;
 }
+/** Restituisce un credito consumato con rateOk (es. quando l'operazione costosa poi fallisce): toglie l'evento più recente. */
+export async function rateRefund(kind: string, who: string): Promise<void> {
+  await q("DELETE FROM rate_events WHERE id=(SELECT id FROM rate_events WHERE kind=$1 AND who=$2 ORDER BY id DESC LIMIT 1)", [kind, who]).catch(() => undefined);
+}
 /** Guardia anti-abuso per le funzioni che consumano credito AI: tetto globale, tetto per utente, account nuovi in attesa. */
 export async function aiGate(s: Session) {
   if (s.role === "admin") return;

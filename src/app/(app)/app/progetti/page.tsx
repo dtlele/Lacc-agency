@@ -8,7 +8,7 @@ export const metadata = { title: "I miei progetti" };
 export default async function Progetti() {
   const s = await requireUser();
   const items = await q<ProjectItem>(
-    "SELECT id,name,thumb,kind,category,difficulty,color,jsonb_array_length(steps) AS n_steps,jsonb_array_length(done) AS n_done FROM projects WHERE user_id=$1 ORDER BY updated_at DESC", [s.uid]);
+    "SELECT id,name,thumb,kind,category,difficulty,color,favorite,jsonb_array_length(steps) AS n_steps,jsonb_array_length(done) AS n_done FROM projects WHERE user_id=$1 ORDER BY updated_at DESC", [s.uid]);
   return (
     <div className="grid gap-5">
       <h1 className="text-4xl">I miei progetti</h1>

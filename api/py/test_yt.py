@@ -46,6 +46,21 @@ class Tutorial(unittest.TestCase):
         self.assertIn("tutorial", yt.build_query("amigurumi", ""))
         self.assertNotIn("tutorial passo passo tutorial", yt.build_query("tutorial punto", ""))
 
+    def test_pertinenza(self):
+        sc = lambda t, d="", tags=None: yt.video_score(t, d, tags, 700)[0] >= yt.MIN_SCORE
+        self.assertFalse(sc("Ricetta tiramisù passo passo", "Ingredienti: mascarpone, savoiardi, caffè. Tutorial facile."))
+        self.assertFalse(sc("Minchia che tutorial", "Come fare la pasta passo passo, occorrente: farina"))
+        self.assertTrue(sc("Come fare il punto alto"))
+        self.assertTrue(sc("Tutorial facile", "Occorrente: uncinetto 3 mm e filato di cotone. Passo passo."))
+        self.assertTrue(sc("Tutorial orsetto", "", ["amigurumi"]))
+        self.assertTrue(yt.is_crochet("Häkeln für Anfänger"))
+        self.assertFalse(yt.is_crochet("Ricetta tiramisù", "Mascarpone e savoiardi"))
+
+    def test_token(self):
+        self.assertTrue(yt.TOKEN_RE.fullmatch("CBkQAA"))
+        self.assertFalse(yt.TOKEN_RE.fullmatch("a&b=1"))
+        self.assertFalse(yt.TOKEN_RE.fullmatch("x" * 101))
+
     def test_ai_dichiarata(self):
         self.assertTrue(yt.is_ai("Orsetto AI generated", ""))
         self.assertFalse(yt.is_ai("Orsetto amigurumi", "Maria"))

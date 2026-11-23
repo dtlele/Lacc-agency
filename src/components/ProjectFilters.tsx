@@ -1,10 +1,12 @@
 "use client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import HeartButton from "./HeartButton";
+import { api } from "@/lib/client";
 
 export type ProjectItem = {
   id: number; name: string; thumb: string | null; kind: "grid" | "rounds";
-  category: string; difficulty: string; color: string; n_steps: number; n_done: number;
+  category: string; difficulty: string; color: string; favorite?: boolean; n_steps: number; n_done: number;
 };
 
 const CATEGORIES = ["Amigurumi", "Borse", "Coperte", "Scialli", "Abbigliamento", "Accessori"];
@@ -12,7 +14,9 @@ const DIFFICULTIES = ["Facile", "Media", "Esperta"];
 const COLORS = ["Rosa", "Lilla", "Menta", "Giallo"];
 const COLOR_BG: Record<string, string> = { Rosa: "bg-rosa-chiaro", Lilla: "bg-lilla", Menta: "bg-menta", Giallo: "bg-giallo" };
 
-export default function ProjectFilters({ items }: { items: ProjectItem[] }) {
+export default function ProjectFilters({ items: initial }: { items: ProjectItem[] }) {
+  const [items, setItems] = useState(initial);
+  const [onlyFav, setOnlyFav] = useState(false);
   const [cat, setCat] = useState("");
   const [diff, setDiff] = useState("");
   const [col, setCol] = useState("");
@@ -22,16 +26,22 @@ export default function ProjectFilters({ items }: { items: ProjectItem[] }) {
   const shown = useMemo(() => {
     const t = text.trim().toLowerCase();
     return items.filter((p) =>
-      (!cat || p.category === cat) && (!diff || p.difficulty === diff) && (!col || p.color === col) &&
-      (!t || p.name.toLowerCase().includes(t)));
-  }, [items, cat, diff, col, text]);
-  const reset = () => { setCat(""); setDiff(""); setCol(""); setText(""); };
+      (!onlyFav || p.favorite) && (!cat || p.category === cat) && (!diff || p.difficulty === diff) && (!col || p.color === col) &&
+      (!t || p.name.toLowerCase().includes(t)))
+      .sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite));
+  }, [items, cat, diff, col, text, onlyFav]);
+  const reset = () => { setCat(""); setDiff(""); setCol(""); setText(""); setOnlyFav(false); };
+  async function setFav(id: number, favorite: boolean) {
+    await api(`/api/projects/${id}`, "PATCH", { favorite });
+    setItems((l) => l.map((p) => (p.id === id ? { ...p, favorite } : p)));
+  }
 
   return (
     <div className="grid gap-4">
       <div className="card grid gap-3">
         <input className="input" type="search" placeholder="Cerca per nome" aria-label="Cerca per nome" value={text} onChange={(e) => setText(e.target.value)} />
         <div className="flex flex-wrap gap-2" role="group" aria-label="Categoria">
+          <button type="button" className="chip" aria-pressed={onlyFav} onClick={() => setOnlyFav(!onlyFav)}>Solo preferiti</button>
           <button type="button" className="chip" aria-pressed={cat === ""} onClick={() => setCat("")}>Tutte</button>
           {cats.map((c) => (
             <button key={c} type="button" className="chip" aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>
@@ -61,7 +71,7 @@ export default function ProjectFilters({ items }: { items: ProjectItem[] }) {
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((p) => (
-            <li key={p.id}>
+            <li key={p.id} className="relative">
               <Link href={`/app/progetti/${p.id}`} className="card flex h-full items-center gap-4 hover:bg-rosa-chiaro/40">
                 {p.thumb ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -81,6 +91,9 @@ export default function ProjectFilters({ items }: { items: ProjectItem[] }) {
                   </span>
                 </span>
               </Link>
+              <span className="absolute right-2 top-2">
+                <HeartButton on={!!p.favorite} label={p.favorite ? `Togli ${p.name} dai preferiti` : `Aggiungi ${p.name} ai preferiti`} onChange={(n) => setFav(p.id, n)} />
+              </span>
             </li>
           ))}
         </ul>
