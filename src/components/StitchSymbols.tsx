@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+"use client";
+import { useState, type ReactNode } from "react";
 
 export type StitchKey = "cat" | "mbss" | "mb" | "mma" | "ma" | "aum" | "dim" | "cm";
 
@@ -41,20 +42,25 @@ export function stitchesIn(text: string, max = 5): StitchKey[] {
   return out.slice(0, max);
 }
 
-/** Fila di simboli con nome e spiegazione breve: aiutano chi inizia a capire il punto senza leggere un glossario. */
+/** Simboli dei punti nominati nel passo: chip compatti, un tocco mostra come si fa. */
 export function StitchRow({ text }: { text: string }) {
-  const keys = stitchesIn(text);
+  const keys = stitchesIn(text, 4);
+  const [open, setOpen] = useState<StitchKey | null>(null);
   if (!keys.length) return null;
   return (
-    <ul className="mt-4 grid gap-2 sm:grid-cols-2" aria-label="Simboli dei punti">
-      {keys.map((k) => (
-        <li key={k} className="flex items-center gap-3 rounded-2xl border-2 border-ink bg-white p-2">
-          <svg width="44" height="44" viewBox="0 0 32 32" fill="none" stroke="#3d1747" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label={`Simbolo: ${STITCHES[k].name}`} className="shrink-0 rounded-xl bg-rosa-chiaro p-1">
-            {STITCHES[k].draw}
-          </svg>
-          <span className="text-base leading-tight"><b className="block">{STITCHES[k].name}</b>{STITCHES[k].how}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="mt-3" aria-label="Simboli dei punti">
+      <ul className="flex flex-wrap gap-1.5">
+        {keys.map((k) => (
+          <li key={k}>
+            <button type="button" aria-pressed={open === k} onClick={() => setOpen(open === k ? null : k)}
+              className={`flex min-h-11 items-center gap-1.5 rounded-full border-2 border-ink py-1 pl-1.5 pr-3 text-sm font-bold ${open === k ? "bg-menta" : "bg-white"}`}>
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#3d1747" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="rounded-full bg-rosa-chiaro p-0.5">{STITCHES[k].draw}</svg>
+              {STITCHES[k].name}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {open && <p className="mt-1.5 rounded-xl bg-menta px-3 py-2 text-sm font-bold" role="status">{STITCHES[open].how}</p>}
+    </div>
   );
 }
