@@ -1,4 +1,4 @@
-export type Step = { t: string; s: string; r: number[] };
+export type Step = { t: string; s: string; r: number[]; at?: number }; // at = secondo del video in cui inizia il passo (schede da video)
 
 /** Convalida la griglia a punti (# = maglia, . = vuoto) ricevuta dal client. */
 export function cleanRows(rows: unknown): string[] | null {

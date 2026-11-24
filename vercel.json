@@ -2,6 +2,11 @@
   "framework": "nextjs",
   "buildCommand": "npm run typecheck && npm run test && next build",
   "functions": {
-    "api/py/*.py": { "maxDuration": 60 }
-  }
+    "api/py/*.py": {
+      "maxDuration": 60
+    }
+  },
+  "regions": [
+    "iad1"
+  ]
 }

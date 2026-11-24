@@ -2,18 +2,24 @@
 import { useState } from "react";
 import type { GuideMeta } from "@/lib/guide";
 import type { Step } from "@/lib/pattern";
+import WorkMode from "./WorkMode";
 
 const LANG_NAMES: Record<string, string> = { it: "Italiano", en: "English", es: "Español", fr: "Français", de: "Deutsch", pt: "Português" };
 const focus = "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-rosa";
 
 /** Scheda di progetto ricavata da un video: info, materiali, glossario, passi spuntabili, consigli e video. */
-export default function GuideView({ meta, steps, done, onToggle }: { meta: GuideMeta; steps: Step[]; done: number[]; onToggle: (i: number) => void }) {
+export default function GuideView({ meta, steps, done, onToggle, projectId, title }: { meta: GuideMeta; steps: Step[]; done: number[]; onToggle: (i: number) => void; projectId: number; title: string }) {
   const [player, setPlayer] = useState(false);
+  const [work, setWork] = useState(false);
   const next = steps.findIndex((_, i) => !done.includes(i));
   const pct = steps.length ? Math.round((done.length / steps.length) * 100) : 0;
   const url = `https://www.youtube.com/watch?v=${meta.videoId}`;
   return (
     <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
+      {work && <WorkMode steps={steps} done={done} onToggle={onToggle} onClose={() => setWork(false)} storeKey={`g${projectId}`} videoId={meta.videoId} title={title} />}
+      <button type="button" onClick={() => setWork(true)} className={`btn min-h-16 text-xl lg:col-span-2 ${focus}`}>
+        {done.length > 0 && done.length < steps.length ? "Continua a lavorare" : "Inizia a lavorare"} · un passo alla volta
+      </button>
       <section aria-label="Passi" className="card">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="font-bold">{done.length === steps.length ? "Fatto! Il lavoro è finito." : `${done.length} passi su ${steps.length}`}</p>

@@ -24,7 +24,10 @@ export const VIDEO_ID = /^[A-Za-z0-9_-]{8,16}$/;
 export function cleanGuide(meta: unknown, steps: unknown): { meta: GuideMeta; steps: Step[] } | null {
   const m = (meta ?? {}) as Record<string, unknown>;
   if (!VIDEO_ID.test(String(m.videoId ?? ""))) return null;
-  const st = (Array.isArray(steps) ? steps : []).slice(0, 40).map((p: any) => ({ t: str(p?.t, 80), s: str(p?.s, 800), r: [] as number[] })).filter((p) => p.t); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const st: Step[] = (Array.isArray(steps) ? steps : []).slice(0, 40).map((p: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    const at = Number(p?.at);
+    return { t: str(p?.t, 80), s: str(p?.s, 800), r: [] as number[], ...(Number.isFinite(at) && at > 0 && at < 86400 ? { at: Math.floor(at) } : {}) };
+  }).filter((p) => p.t);
   if (st.length < 2) return null;
   const difficulty = ["Facile", "Media", "Esperta"].includes(String(m.difficulty)) ? String(m.difficulty) : "";
   return {

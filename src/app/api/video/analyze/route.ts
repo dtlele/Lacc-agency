@@ -49,7 +49,7 @@ export const POST = (req: Request) =>
     const title = info.title, channel = info.channel;
 
     // cache: un'analisi già fatta non costa e non conta nei limiti
-    const key = `${videoId}|${lang}`;
+    const key = `${videoId}|${lang}|v2`; // v2: i passi hanno anche il secondo d'inizio nel video
     const [hit] = await q<{ data: Result }>("SELECT data FROM video_analysis WHERE cache_key=$1 AND created_at > now() - interval '30 days'", [key]);
     if (hit?.data) return { ...hit.data, cached: true };
 
@@ -64,8 +64,8 @@ export const POST = (req: Request) =>
 
     const prompt = `Guarda questo video di uncinetto (immagini e voce) e crea la scheda informativa del progetto. Scrivi TUTTI i testi in ${LANG_NAMES[lang]}.
 Rispondi SOLO con JSON valido, senza altro testo, in questa forma:
-{"nome":"","riassunto":"","difficolta":"Facile|Media|Esperta","tempo":"","materiali":[""],"glossario":[{"termine":"","significato":""}],"passi":[{"titolo":"","istruzione":""}],"consigli":[""]}
-Regole: i passi sono in ordine, da 6 a 25, con istruzioni concrete (numero di maglie, giri, misura dell'uncinetto e filato se mostrati o detti nel video). Il glossario spiega abbreviazioni e punti usati. Non inventare nulla: se un dato non c'è nel video, lascialo vuoto. "difficolta" può essere solo Facile, Media o Esperta (o vuoto). Non usare i nomi delle difficoltà tradotti.`;
+{"nome":"","riassunto":"","difficolta":"Facile|Media|Esperta","tempo":"","materiali":[""],"glossario":[{"termine":"","significato":""}],"passi":[{"titolo":"","istruzione":"","inizio_sec":0}],"consigli":[""]}
+Regole: i passi sono in ordine, da 6 a 25, con istruzioni concrete (numero di maglie, giri, misura dell'uncinetto e filato se mostrati o detti nel video). "inizio_sec" è il secondo del video (numero intero) in cui quel passo comincia a essere mostrato: serve per far partire il video dal punto giusto; se non sei sicuro metti 0. Il titolo di ogni passo è breve (massimo 6 parole) e l'istruzione si capisce a colpo d'occhio. Il glossario spiega abbreviazioni e punti usati. Non inventare nulla: se un dato non c'è nel video, lascialo vuoto. "difficolta" può essere solo Facile, Media o Esperta (o vuoto). Non usare i nomi delle difficoltà tradotti.`;
     const refund = async () => { if (s.role !== "admin") { await rateRefund("analyze_user", `u${s.uid}`); await rateRefund("analyze_global", "all"); } };
     // Un errore passeggero del servizio AI (429/5xx, rete) faceva fallire l'analisi senza lasciare traccia:
     // ora si riprova una volta sola, se resta tempo prima del limite della funzione (60 s), e l'errore vero finisce nei log.
@@ -99,7 +99,7 @@ Regole: i passi sono in ordine, da 6 a 25, con istruzioni concrete (numero di ma
       videoId, videoTitle: title, channel, lang, summary: j.riassunto, difficulty: j.difficolta, timeNeeded: j.tempo,
       materials: j.materiali, glossary: (Array.isArray(j.glossario) ? j.glossario : []).map((x: any) => ({ term: x?.termine, meaning: x?.significato })), // eslint-disable-line @typescript-eslint/no-explicit-any
       tips: j.consigli,
-    }, (Array.isArray(j.passi) ? j.passi : []).map((p: any) => ({ t: p?.titolo, s: p?.istruzione }))); // eslint-disable-line @typescript-eslint/no-explicit-any
+    }, (Array.isArray(j.passi) ? j.passi : []).map((p: any) => ({ t: p?.titolo, s: p?.istruzione, at: p?.inizio_sec }))); // eslint-disable-line @typescript-eslint/no-explicit-any
     if (!g) return await bad();
     const name = String(j.nome ?? "").replace(/\s+/g, " ").trim().slice(0, 60) || title.slice(0, 60) || "Progetto da video";
     const out: Result = { meta: g.meta, steps: g.steps, name };

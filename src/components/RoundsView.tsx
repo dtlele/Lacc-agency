@@ -1,11 +1,14 @@
 "use client";
+import { useState } from "react";
 import type { Step } from "@/lib/pattern";
 import AmigurumiPreview from "./AmigurumiPreview";
+import WorkMode from "./WorkMode";
 
 export type RoundsMeta = { shape?: string; size?: number; rounds?: number[] };
 
 /** Passi spuntabili + anteprima 3D: il giro del primo passo da fare è in giallo. */
-export default function RoundsView({ meta, steps, done, onToggle }: { meta: RoundsMeta; steps: Step[]; done: number[]; onToggle: (i: number) => void }) {
+export default function RoundsView({ meta, steps, done, onToggle, projectId, title }: { meta: RoundsMeta; steps: Step[]; done: number[]; onToggle: (i: number) => void; projectId: number; title: string }) {
+  const [work, setWork] = useState(false);
   const rounds = meta.rounds ?? [];
   const next = steps.findIndex((_, i) => !done.includes(i));
   const first = next >= 0 ? steps[next].r[0] : undefined;
@@ -14,6 +17,10 @@ export default function RoundsView({ meta, steps, done, onToggle }: { meta: Roun
   const pct = steps.length ? Math.round((done.length / steps.length) * 100) : 0;
   return (
     <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
+      {work && <WorkMode steps={steps} done={done} onToggle={onToggle} onClose={() => setWork(false)} storeKey={`r${projectId}`} title={title} />}
+      <button type="button" onClick={() => setWork(true)} className="btn min-h-16 text-xl lg:col-span-2">
+        {done.length > 0 && done.length < steps.length ? "Continua a lavorare" : "Inizia a lavorare"} · un passo alla volta
+      </button>
       <section aria-label="Passi" className="card">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="font-bold">{done.length === steps.length ? "Fatto! Il lavoro è finito." : `${done.length} passi su ${steps.length}`}</p>

@@ -47,4 +47,8 @@ describe("cleanGuide", () => {
     const g = cleanGuide({ ...meta, glossary: [{ term: "mb", meaning: "maglia bassa" }, { term: "ma", meaning: "" }] }, steps)!;
     expect(g.meta.glossary).toEqual([{ term: "mb", meaning: "maglia bassa" }]);
   });
+  it("tiene il secondo d'inizio del passo solo se valido", () => {
+    const g = cleanGuide(meta, [{ t: "a", s: "x", at: 95.7 }, { t: "b", s: "y", at: -3 }, { t: "c", s: "z", at: "boh" }])!;
+    expect(g.steps.map((p) => p.at)).toEqual([95, undefined, undefined]);
+  });
 });

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/client";
+import BusyOverlay from "./BusyOverlay";
 
 const NAV = [
   { href: "/app", label: "Home", icon: "M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" },
@@ -21,6 +22,7 @@ export default function AppShell({ name, children }: { name: string; children: R
   async function esci() { await api("/api/auth/logout", "POST"); window.location.href = "/"; }
   return (
     <div className="mx-auto flex min-h-dvh max-w-6xl">
+      <BusyOverlay />
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-1 border-r-2 border-ink p-4 md:flex">
         <Link href="/app" className="mb-4 font-display text-2xl text-accent">Filo &amp; Fantasia</Link>
         {NAV.map((n) => (
