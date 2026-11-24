@@ -25,8 +25,10 @@ export function cleanGuide(meta: unknown, steps: unknown): { meta: GuideMeta; st
   const m = (meta ?? {}) as Record<string, unknown>;
   if (!VIDEO_ID.test(String(m.videoId ?? ""))) return null;
   const st: Step[] = (Array.isArray(steps) ? steps : []).slice(0, 40).map((p: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-    const at = Number(p?.at);
-    return { t: str(p?.t, 80), s: str(p?.s, 800), r: [] as number[], ...(Number.isFinite(at) && at > 0 && at < 86400 ? { at: Math.floor(at) } : {}) };
+    const at = Number(p?.at), end = Number(p?.end);
+    const okAt = Number.isFinite(at) && at > 0 && at < 86400;
+    const okEnd = okAt && Number.isFinite(end) && end > at + 2 && end - at <= 900; // un mini-video per passo: da 3 s a 15 min
+    return { t: str(p?.t, 80), s: str(p?.s, 800), r: [] as number[], ...(okAt ? { at: Math.floor(at) } : {}), ...(okEnd ? { end: Math.floor(end) } : {}) };
   }).filter((p) => p.t);
   if (st.length < 2) return null;
   const difficulty = ["Facile", "Media", "Esperta"].includes(String(m.difficulty)) ? String(m.difficulty) : "";

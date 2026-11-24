@@ -52,3 +52,11 @@ describe("cleanGuide", () => {
     expect(g.steps.map((p) => p.at)).toEqual([95, undefined, undefined]);
   });
 });
+
+describe("cleanGuide: fine del passo", () => {
+  const m = { videoId: "abcdefghijk" };
+  it("tiene la fine solo se dopo l'inizio e entro 15 minuti", () => {
+    const g = cleanGuide(m, [{ t: "a", s: "x", at: 10, end: 40 }, { t: "b", s: "y", at: 50, end: 20 }, { t: "c", s: "z", at: 5, end: 5000 }])!;
+    expect(g.steps.map((p) => p.end)).toEqual([40, undefined, undefined]);
+  });
+});

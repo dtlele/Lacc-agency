@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Step } from "@/lib/pattern";
+import { StitchRow } from "./StitchSymbols";
 
 type Props = {
   steps: Step[];
@@ -10,11 +11,27 @@ type Props = {
   storeKey: string; // per ricordare i contagiri di questo progetto
   videoId?: string; // se c'è, ogni passo può mostrare il video dal suo momento
   title?: string;
+  glossary?: { term: string; meaning: string }[]; // abbreviazioni da spiegare accanto al passo
 };
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 const lsGet = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* nessuna memoria: pazienza */ } };
+
+/** Voci del glossario che compaiono nel testo del passo (parola intera, senza distinguere maiuscole). */
+export function termsIn(glossary: { term: string; meaning: string }[], text: string) {
+  const hay = text.toLowerCase();
+  return glossary.filter((g) => {
+    const t = g.term.trim().toLowerCase();
+    if (!t) return false;
+    for (let from = hay.indexOf(t); from >= 0; from = hay.indexOf(t, from + 1)) {
+      const before = hay[from - 1], after = hay[from + t.length];
+      const isLetter = (c?: string) => !!c && c.toLowerCase() !== c.toUpperCase();
+      if (!isLetter(before) && !isLetter(after)) return true;
+    }
+    return false;
+  }).slice(0, 6);
+}
 
 /** Minuti citati nel testo del passo ("lavora per 10 minuti") -> proposta di timer. */
 function minutesIn(text: string): number | null {
@@ -24,12 +41,13 @@ function minutesIn(text: string): number | null {
 }
 
 /** Modalità lavoro: un passo alla volta a schermo intero, testo grande, tasti enormi, contagiri, timer, voce e video dal momento giusto. */
-export default function WorkMode({ steps, done, onToggle, onClose, storeKey, videoId, title }: Props) {
+export default function WorkMode({ steps, done, onToggle, onClose, storeKey, videoId, title, glossary = [] }: Props) {
   const first = steps.findIndex((_, i) => !done.includes(i));
   const [i, setI] = useState(first >= 0 ? first : 0);
   const [count, setCount] = useState(0);
   const [timer, setTimer] = useState<number | null>(null); // secondi rimasti
-  const [video, setVideo] = useState(false);
+  const [videoPref, setVideoPref] = useState<boolean | null>(null); // null = automatico: si apre da solo se il passo ha il suo momento nel video
+  const [replay, setReplay] = useState(0);
   const [readAloud, setReadAloud] = useState(false);
   const [listening, setListening] = useState(false);
   const [heard, setHeard] = useState("");
@@ -39,6 +57,7 @@ export default function WorkMode({ steps, done, onToggle, onClose, storeKey, vid
   const wantListen = useRef(false);
   const ctxRef = useRef<AudioContext | null>(null);
   const s = steps[i];
+  const video = videoPref ?? s?.at !== undefined;
   const last = i === steps.length - 1;
   const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
   const SR = typeof window !== "undefined" ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition) : undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -174,18 +193,31 @@ export default function WorkMode({ steps, done, onToggle, onClose, storeKey, vid
         <h1 className="mb-3 text-4xl leading-tight sm:text-5xl">{s.t}</h1>
         <p className={`${bodySize} whitespace-pre-line`}>{s.s}</p>
 
+        <StitchRow text={`${s.t} ${s.s}`} />
+
+        {glossary.length > 0 && (() => {
+          const used = termsIn(glossary, `${s.t} ${s.s}`);
+          return used.length ? (
+            <ul className="mt-4 flex flex-wrap gap-2" aria-label="Significato dei punti">
+              {used.map((g) => <li key={g.term} className="rounded-2xl border-2 border-ink bg-menta px-3 py-1.5 text-base"><b>{g.term}</b> = {g.meaning}</li>)}
+            </ul>
+          ) : null;
+        })()}
+
         {videoId && (
           <div className="mt-4">
-            <button type="button" className={`${chip} bg-lilla`} aria-expanded={video} onClick={() => setVideo((v) => !v)}>
+            <button type="button" className={`${chip} bg-lilla`} aria-expanded={video} onClick={() => setVideoPref(!video)}>
               {video ? "Nascondi il video" : s.at !== undefined ? `Guarda questo passo nel video (${fmt(s.at)})` : "Guarda il video"}
             </button>
+            {video && s.at !== undefined && <button type="button" className={`${chip} ml-2 bg-bg`} onClick={() => setReplay((n) => n + 1)}>Rivedi il pezzo</button>}
             {video && (
               <div className="mt-3 aspect-video overflow-hidden rounded-2xl border-2 border-ink">
-                <iframe key={`${i}-${s.at ?? 0}`} className="h-full w-full" title={`Video: ${s.t}`}
-                  src={`https://www.youtube-nocookie.com/embed/${videoId}?start=${s.at ?? 0}&playsinline=1&rel=0`}
-                  allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
+                <iframe key={`${i}-${s.at ?? 0}-${replay}`} className="h-full w-full" title={`Video: ${s.t}`}
+                  src={`https://www.youtube-nocookie.com/embed/${videoId}?start=${s.at ?? 0}${s.end ? `&end=${s.end}` : ""}${s.at !== undefined ? "&autoplay=1&mute=1" : ""}&playsinline=1&rel=0`}
+                  allow="autoplay; accelerometer; encrypted-media; gyroscope; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
               </div>
             )}
+            {video && s.at !== undefined && s.end && <p className="mt-1 text-sm text-muted">Mostro solo questo passo ({fmt(s.at)}–{fmt(s.end)}). Tocca il video per il sonoro.</p>}
             {video && s.at === undefined && <p className="mt-1 text-sm text-muted">Per questo progetto non conosco il momento esatto: il video parte dall&apos;inizio.</p>}
           </div>
         )}

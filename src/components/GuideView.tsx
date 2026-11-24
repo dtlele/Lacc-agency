@@ -16,7 +16,7 @@ export default function GuideView({ meta, steps, done, onToggle, projectId, titl
   const url = `https://www.youtube.com/watch?v=${meta.videoId}`;
   return (
     <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-      {work && <WorkMode steps={steps} done={done} onToggle={onToggle} onClose={() => setWork(false)} storeKey={`g${projectId}`} videoId={meta.videoId} title={title} />}
+      {work && <WorkMode steps={steps} done={done} onToggle={onToggle} onClose={() => setWork(false)} storeKey={`g${projectId}`} videoId={meta.videoId} title={title} glossary={meta.glossary} />}
       <button type="button" onClick={() => setWork(true)} className={`btn min-h-16 text-xl lg:col-span-2 ${focus}`}>
         {done.length > 0 && done.length < steps.length ? "Continua a lavorare" : "Inizia a lavorare"} · un passo alla volta
       </button>
